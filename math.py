@@ -16,8 +16,6 @@ def second_deriv(func, x, i, k, h, val=None):
     NEW: since all the functions that call this use it multiple times,
     thus computing func(x) everytime, the option val allows
     a computation of func(x) outside to be fed in
-    (may 5, 2019) for agp-free this results in no gain
-    which i currently dont understand (????)
     """
     xph = np.copy(x)
     xmh = np.copy(x)
@@ -72,7 +70,7 @@ def gradient(func, x, h):
     gradients = np.array(gradients) / h
     return gradients
 
-def laplacian_all(func, x, h):
+def laplacian(func, x, h):
     """
     same args as total_laplacian and gradient_all
     differs from total laplacian in that
@@ -90,33 +88,18 @@ def laplacian_all(func, x, h):
         laplacians.append(laplacian)
     return laplacians
 
-def displacement(r1, r2, size):
+def minimum_image(r, size):
     """
-    computes displacement r2 - r1 (mind the sign)
+    computes the image of r
     in a cube with side length size
     in periodic boundary conditions
-    according to the nearest image convention
+    i.e. if r is outside the box this gives the corresponding image
+    inside the box
     
-    r1 and r2 should be 1d arrays of any length
-    so long as their lengths are the same
+    if r = r1 - r2 comes from the difference between two coordinates
+    this gives the difference between them in the minimum image convention
     """
-    r = r1 - r2
-    for i in range(len(r)):
-        r[i] -= round(r[i] / size)*size
-    return r
-
-def transition_probability(start, finish, drift, timestep):
-    """
-    for a gaussian distribution with standard deviation timestep
-    and an extra bias given by drift,
-    this gives the relative probability of starting at start
-    and ending at finish
-    
-    start, finish, and drft are assumed to be vectors of len 3
-    """
-    val = -timestep*drift
-    val += finish - start
-    return math.exp(-np.dot(val, val)/(2*timestep));
+    return r - size*np.round(r / size)
 
 def half_fermi_sea(k_fermi):
     """
@@ -154,7 +137,7 @@ def angle(v1, v2):
 def latticeVectorInfo(v1, v2, v3):
     """
     takes three lattice vectors v1, v2, v3,
-    and prints their norms and relative angles
+    and return their norms and relative angles
     e.g. for fcc primitive lattice vectors
     the norms would all be the same and the angles would all be 60 degrees
     and for bcc primitive lattice vectors two of the angles would be
@@ -169,9 +152,13 @@ def latticeVectorInfo(v1, v2, v3):
     alpha = math.acos(np.dot(a2, a3)/(b*c))
     beta = math.acos(np.dot(a1, a3)/(a*c))
     gamma = math.acos(np.dot(a1, a2)/(a*b))
-    print('a = ' + str(a))
-    print('b = ' + str(b))
-    print('c = ' + str(c))
-    print('alpha = ' + str(math.degrees(alpha)))
-    print('beta = ' + str(math.degrees(beta)))
-    print('gamma = ' + str(math.degrees(gamma)))
+    alpha = math.degrees(alpha)
+    beta = math.degrees(beta)
+    gamma = math.degrees(gamma)
+    #print('a = ' + str(a))
+    #print('b = ' + str(b))
+    #print('c = ' + str(c))
+    #print('alpha = ' + str(math.degrees(alpha)))
+    #print('beta = ' + str(math.degrees(beta)))
+    #print('gamma = ' + str(math.degrees(gamma)))
+    return a, b, c, alpha, beta, gamma
