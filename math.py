@@ -1,5 +1,7 @@
 import numpy as np
 import math
+import itertools
+import networkx as nx
 
 def second_deriv(func, x, i, k, h, val=None):
     """
@@ -162,3 +164,29 @@ def latticeVectorInfo(v1, v2, v3):
     #print('beta = ' + str(math.degrees(beta)))
     #print('gamma = ' + str(math.degrees(gamma)))
     return a, b, c, alpha, beta, gamma
+
+def sort_args_binary(a, rule):
+    """
+    take an array a, and organize its elements into groups
+    any two elements x and y will belong to the same group
+    if rule(x, y) == True
+    (so rule is a bool function of two args, e.g. math.isclose())
+
+    returns a list of sets of args (tuples)
+    in which any two tuples in the same set access elements in the same group
+
+    this is equivalent to finding the connected components of an undirected graph,
+    where the nodes are the elements of a (or rather, their args)
+    and an edge is drawn between any two nodes if they satisfy the rule
+    """
+    a_flat = a.flatten()
+    a_pairs = list(itertools.combinations(a_flat, 2))
+    indices = [np.unravel_index(i, a.shape) for i in range(len(a_flat))]
+    index_pairs = list(itertools.combinations(indices, 2))
+    #begin constructing graph
+    G = nx.Graph()
+    for i in range(len(a_pairs)):
+        if rule(a_pairs[i][0], a_pairs[i][1]) == True:
+            #this pair satisfies the rule, add the edge
+            G.add_edge(index_pairs[i][0], index_pairs[i][1])
+    return list(nx.connected_components(G))

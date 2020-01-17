@@ -71,3 +71,36 @@ def read_force(fname):
         if ('force' in words) and ('atom' in words):
             forces.append([float(words[-3]),float(words[-2]),float(words[-1])])
     return np.array(forces)
+
+def read_atomic_positions(fname, n_atoms):
+    """
+    read the atomic positions of an input file whose name is fname
+    it assumed that the positions begin after the line beginning with
+    'ATOMIC_POSITIONS'
+    and that each line, upon applying split(), has only four elements:
+    [name, #, #, #]
+    
+    this will return an array of shape (n_atoms, 3)
+    and should look exactly like the numbers under ATOMIC_POSITIONS
+    just without the names
+    """
+    with open(fname, "r") as f:
+        lines = f.readlines()
+    found = False
+    count = 0
+    atomic_positions = np.zeros((n_atoms, 3))
+    for line in lines:
+        if found:
+            words = line.split()
+            atomic_positions[count,0] = float(words[-3])
+            atomic_positions[count,1] = float(words[-2])
+            atomic_positions[count,2] = float(words[-1])
+            count += 1
+        if 'ATOMIC_POSITIONS' in line.split():
+            found = True
+        if count == n_atoms:
+            return atomic_positions
+    if count != n_atoms:
+        print('too many atoms were specified')
+    if found == False:
+        print('atomic positions were not found')
