@@ -82,3 +82,33 @@ def makegofr(hist):
     y /= x**2
     y /= 4*math.pi*dx*N
     return x, y
+
+def sort_rows(arr, column):
+    """
+    sorts the rows of an array according to column
+    e.g. consider the data
+
+    3 1.1
+    4 1.7
+    1 0
+    2 -9
+
+    sorting by column 0 would yield
+
+    1 0
+    2 -9
+    3 1.1
+    4 1.7
+
+    and sorting by column 1 would yield
+
+    2 -9
+    1 0
+    3 1.1
+    4 1.7
+
+    this is a one-liner that i found on stackoverflow long ago
+    but i cannot find it again
+    sorry to whoever you are
+    """
+    return arr[arr[:,column].argsort()]
