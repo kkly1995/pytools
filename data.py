@@ -6,6 +6,7 @@ typically geared towards statistical / monte carlo type data
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+from scipy.integrate import trapz
 
 def autocorrelation(dataset, offset):
     #data set is a 1D list
@@ -78,9 +79,9 @@ def makegofr(hist):
     x = np.copy(hist[1][:-1]) #dump the last value
     dx = x[1] - x[0]
     x += dx/2 #shift so that x now gives the middle of each bin
-    N = len(y)
-    y /= x**2
-    y /= 4*math.pi*dx*N
+    #normalize
+    y /= trapz(y, x)
+    y /= 4*np.pi*x**2
     return x, y
 
 def sort_rows(arr, column):
