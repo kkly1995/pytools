@@ -190,3 +190,27 @@ def sort_args_binary(a, rule):
             #this pair satisfies the rule, add the edge
             G.add_edge(index_pairs[i][0], index_pairs[i][1])
     return list(nx.connected_components(G))
+
+def coulomb_potential(displacement, one_species=True):
+    """
+    computes total coulomb potential from all pairs of distances
+    using a displacement table
+    displacement is the table IN CARTESIAN
+
+    one_species specifies whether or not the table is computed from
+    one set of identical particles, e.g. a displacement table of up electrons
+    in which case the table is antisymmetric with zero diagonal
+
+    an example where one_species should be False is if the table
+    is computed from e.g. up-down particles
+    i.e. displacement[i,j] = up[i] - down[j]
+    in which case the table is not symmetric at all
+    """
+    r = np.linalg.norm(displacement, axis=-1)
+    #dont need directions of displacements
+    if one_species:
+        #make list only from upper triangle
+        r = r[np.triu_indices_from(r, k=1)]
+    else:
+        r = r.flatten() #use every entry
+    return np.sum(1./r)

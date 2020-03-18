@@ -127,3 +127,40 @@ def test_latticeVectorInfo():
         assert isclose(90, computed[i+3]), msg2
     assert isclose(c, computed[2]), msg2
     assert isclose(60, computed[5]), msg2
+
+def test_coulomb_potential():
+    #this test also relies on electron and cell classes
+    from pytools.pbc import electron, cell
+    elec = electron(17, 19)
+    elec.start_random()
+    v = 6.9*np.eye(3) #cubic cell, length 6.9
+    geometry = cell(v[0], v[1], v[2])
+    up_displacement = geometry.crystal_to_cart(elec.up_table)
+    down_displacement = geometry.crystal_to_cart(elec.down_table)
+    updown_displacement = geometry.crystal_to_cart(elec.up_down_table)
+    #begin computing potentials
+    up_potential = pm.coulomb_potential(up_displacement)
+    down_potential = pm.coulomb_potential(down_displacement)
+    updown_potential = pm.coulomb_potential(updown_displacement, False)
+    #computation using loops
+    up_manual = 0
+    down_manual = 0
+    updown_manual = 0
+    r_up = np.linalg.norm(up_displacement, axis=-1)
+    r_down = np.linalg.norm(down_displacement, axis=-1)
+    r_updown = np.linalg.norm(updown_displacement, axis=-1)
+    for i in range(elec.N_up):
+        for j in range(i):
+            up_manual += 1./r_up[i,j]
+    for i in range(elec.N_down):
+        for j in range(i):
+            down_manual += 1./r_down[i,j]
+    for i in range(elec.N_up):
+        for j in range(elec.N_down):
+            updown_manual += 1./r_updown[i,j]
+    assert isclose(up_potential, up_manual), \
+            'coulomb_potential failed for up electrons'
+    assert isclose(down_potential, down_manual), \
+            'coulomb_potential failed for down electrons'
+    assert isclose(updown_potential, updown_manual), \
+            'coulomb_potential failed for up-down electrons'
