@@ -29,6 +29,8 @@ def ewald(displacement, kappa, kvecs, volume, \
 
     kvecs is list of kvectors over which to perform the long range sum
     it is assumed that: k = 0 is excluded
+    and that kvecs forms a closed shell
+    so that this potential is real (replace exp with cos)
     KVECS SHOULD BE IN CARTESIAN COORDINATES
 
     the volume of the cell is required to normalize long range term
@@ -63,7 +65,7 @@ def ewald(displacement, kappa, kvecs, volume, \
     kr = np.matmul(kvecs, table.transpose())
     longrange = np.einsum('i,ij', \
             np.exp(-ksquared / (4*kappa**2)) / ksquared, \
-            np.exp(1j*kr))
+            np.cos(kr))
     #j isnt summed over so this returns a list
     longrange = np.sum(longrange)
     longrange *= 4*np.pi/volume
