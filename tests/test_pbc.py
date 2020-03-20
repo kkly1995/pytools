@@ -6,7 +6,6 @@ from math import isclose
 def test_ewald():
     """
     currently just tests implementation against for loops
-    for one_species=False (nonsymmetric displacement table)
     need to eventually check it against madelung constants
     """
     L = 6.9
