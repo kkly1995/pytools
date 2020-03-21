@@ -19,7 +19,7 @@ def test_egas():
     assert isclose(coef[1], A/F, rel_tol=1e-3), \
             'electron-electron jastrow does not have correct r=0 behavior'
 
-def test_u_prime():
+def test_egas_prime():
     """
     check that finite difference estimate of derivative of u
     matches u_prime
@@ -34,3 +34,26 @@ def test_u_prime():
     #ignore the ends, whose finite difference estimates are way worse
     assert np.isclose(estimate[1:-1], actual[1:-1], rtol=1e-3).all(), \
             'electron-electron jastrow derivative is not correct'
+            
+def test_mcmillan():
+    """
+    check that for r = 1, the mcmillan jastrow gives the correct value
+    """
+    a1 = np.random.rand() + 1
+    a2 = np.random.rand() + 1
+    r = 1
+    assert isclose(a1**a2, pj.mcmillan(r, a1, a2)), \
+        'mcmillan jastrow failed for r = 1'
+
+def test_mcmillan_prime():
+    """
+    check that finite difference estimate of derivative of mcmillan
+    matches mcmillan_prime
+    """
+    a1 = np.random.rand() + 1
+    a2 = np.random.rand() + 1
+    r = np.linspace(1, 2)
+    estimate = np.gradient(pj.mcmillan(r, a1, a2), r[1] - r[0])
+    actual = pj.mcmillan_prime(r, a1, a2)
+    assert np.isclose(estimate[1:-1], actual[1:-1], rtol=1e-3).all(), \
+            'mcmillan jastrow derivative is not correct'

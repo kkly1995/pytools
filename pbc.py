@@ -123,7 +123,7 @@ class electron:
         up_up = self.up[i] - self.up
         up_down = self.up[i] - self.down
         self.up_table[i,:,:] = minimum_image(up_up)
-        self.up_table[:,i,:] = minimum_image(up_up)
+        self.up_table[:,i,:] = -minimum_image(up_up)
         self.up_down_table[i,:,:] = minimum_image(up_down)
 
     def update_down(self, i):
@@ -136,7 +136,7 @@ class electron:
         down_down = self.down[i] - self.down
         up_down = self.up - self.down[i]
         self.down_table[i,:,:] = minimum_image(down_down)
-        self.down_table[:,i,:] = minimum_image(down_down)
+        self.down_table[:,i,:] = -minimum_image(down_down)
         self.up_down_table[:,i,:] = minimum_image(up_down)
 
     def start_random(self):
@@ -179,9 +179,9 @@ class proton:
         also move it back into cell if outside
         """
         self.r[i] = minimum_image(self.r[i])
-        newrow = self.r[i] - self.r
+        newrow = minimum_image(self.r[i] - self.r)
         self.table[i,:,:] = np.copy(newrow)
-        self.table[:,i,:] = np.copy(newrow)
+        self.table[:,i,:] = -np.copy(newrow)
 
     def start_random(self):
         self.r = minimum_image(np.random.rand(self.N, 3))

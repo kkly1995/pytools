@@ -25,3 +25,22 @@ def laplacian_egas(r, A, F):
     denominator = r*F**2
     return -numerator / denominator
 
+def mcmillan(r, a1, a2):
+    """
+    jastrow factor of mcmillan (1965)
+    this is -log(f) rather than f itself,
+    where f is eq 5 in that paper
+    """
+    return (a1 / r)**a2
+
+def mcmillan_prime(r, a1, a2):
+    """
+    derivative of mcmillan wrt r
+    """
+    return -(a2 / r)*mcmillan(r, a1, a2)
+
+def laplacian_mcmillan(r, a1, a2):
+    val = mcmillan(r, a1, a2)
+    val *= (a2 - 1)*a2
+    val /= r**2
+    return val

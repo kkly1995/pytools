@@ -3,6 +3,43 @@ import numpy as np
 from scipy.special import erfc
 from math import isclose
 
+def test_electron_update():
+    """
+    move every electron, update with single particle updates
+    then check that update_displacement gives same tables
+    """
+    test = pbc.electron(20, 30)
+    for i in range(20):
+        test.up[i] += np.random.rand(3) - 0.5
+        test.update_up(i)
+    for i in range(30):
+        test.down[i] += np.random.rand(3) - 0.5
+        test.update_down(i)
+    old_up_table = np.copy(test.up_table)
+    old_down_table = np.copy(test.down_table)
+    old_up_down_table = np.copy(test.up_down_table)
+    test.update_displacement()
+    assert np.isclose(old_up_table, test.up_table).all(), \
+        'update_up and update_displacement are inconsistent for electron'
+    assert np.isclose(old_down_table, test.down_table).all(), \
+        'update_down and update_displacement are inconsistent for electron'
+    assert np.isclose(old_up_down_table, test.up_down_table).all()
+    
+
+def test_proton_update():
+    """
+    move every proton, update object using update_r
+    and check that update_displacement at the end gives same result
+    """
+    test = pbc.proton(50)
+    for i in range(50):
+        test.r[i] += np.random.rand(3) - 0.5
+        test.update_r(i)
+    oldtable = np.copy(test.table)
+    test.update_displacement()
+    assert np.isclose(oldtable, test.table).all(), \
+        'update_r and update_displacement are inconsistent for proton class'
+
 def test_ewald():
     """
     currently just tests implementation against for loops
