@@ -43,7 +43,6 @@ def test_proton_update():
 def test_ewald():
     """
     currently just tests implementation against for loops
-    for one_species=False (nonsymmetric displacement table)
     need to eventually check it against madelung constants
     """
     L = 6.9
@@ -57,9 +56,13 @@ def test_ewald():
     kappa = 6/L
     volume = supercell.volume
     manual = 0
+    symmetric_manual = 0
     for i in range(11):
         for j in range(11):
-            manual += erfc(kappa*r[i,j]) / r[i,j]
+            val = erfc(kappa*r[i,j]) / r[i,j]
+            manual += val
+            if i < j:
+                symmetric_manual += val
     #begin longrange
     for i in range(11):
         for j in range(11):
@@ -68,7 +71,12 @@ def test_ewald():
                 kr = np.dot(k[l], displacement[i,j])
                 prefactor = 4*np.pi/volume
                 pw = np.cos(kr)
-                manual += prefactor*np.exp(-ksq / (4*kappa**2))*pw/ksq
-    #self-term, there are 22 charges
-    manual -= kappa*22 / np.sqrt(np.pi)
-    assert isclose(manual, pbc.ewald(displacement, kappa, k, volume))
+                val = prefactor*np.exp(-ksq / (4*kappa**2))*pw/ksq
+                manual += val
+                if i < j:
+                    symmetric_manual += val
+    assert isclose(manual, pbc.ewald(displacement, kappa, k, volume)), \
+            'ewald failed for one_species=False'
+    assert isclose(symmetric_manual, pbc.ewald(displacement, kappa, k, \
+            volume, one_species=True)), \
+            'ewald failed for one_species=True'

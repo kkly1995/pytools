@@ -16,10 +16,18 @@ def minimum_image(r):
     return r - np.round(r)
 
 def ewald(displacement, kappa, kvecs, volume, \
-        one_species=False, net_charge=0):
+        one_species=False):
     """
     perform ewald sum according to the first two terms of eq 6.4
-    in allen and tildesley (2017)
+    in allen and tildesley (2017), with q_i*q_j = 1
+
+    NOTE: the self term (third term in aforementioned equation)
+    must be subtracted off manually
+    the reason is that, in practice, one has multiple displacement tables
+    requiring this function to be called separately each time;
+    since the self term really only requires the number of charges
+    i think it is more reliable to do it externally
+    same goes for any neutralizing background
 
     displacement and one_species are
     same args as in coulomb_potential
@@ -34,11 +42,6 @@ def ewald(displacement, kappa, kvecs, volume, \
     KVECS SHOULD BE IN CARTESIAN COORDINATES
 
     the volume of the cell is required to normalize long range term
-
-    net_charge needs to be specified for neutralization
-
-    for the self_term it is assumed that all particles have charge e
-    or -e i.e. q^2 = 1
     """
     #check if first kvec is 0
     if np.sum(kvecs[0]) == 0:
@@ -50,15 +53,11 @@ def ewald(displacement, kappa, kvecs, volume, \
     n_columns = table.shape[1]
     ksquared = np.matmul(kvecs, kvecs.transpose())
     ksquared = np.diagonal(ksquared)
-    num_charges = 0
     if one_species:
         #only use upper triangle
         table = table[np.triu_indices(n_rows, k=1)]
-        #need number of particles for self_term
-        num_charges = n_rows
     else:
         table = table.reshape(n_rows*n_columns, 3)
-        num_charges = n_rows + n_columns
     r = np.linalg.norm(table, axis=-1)
     shortrange = np.sum(sp.erfc(kappa*r) / r)
     #begin long range term
@@ -69,9 +68,7 @@ def ewald(displacement, kappa, kvecs, volume, \
     #j isnt summed over so this returns a list
     longrange = np.sum(longrange)
     longrange *= 4*np.pi/volume
-    #what allen an tildesley call the 'self-term'
-    self_term = kappa*num_charges/np.sqrt(np.pi)
-    return shortrange + longrange - self_term
+    return shortrange + longrange
 
 class electron:
     """
