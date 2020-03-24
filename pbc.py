@@ -15,6 +15,56 @@ def minimum_image(r):
     """
     return r - np.round(r)
 
+def ewald_real(displacement, kappa, L, one_species=False):
+    """
+    testing real space sum separately
+    L is side length of cube (only works for cubic)
+    """
+    table = np.copy(displacement)
+    val = 0
+    for x in range(-1,2):
+        for y in range(-1,2):
+            for z in range(-1,2):
+                if x == y == z == 0:
+                    if one_species:
+                        #avoid diagonal
+                        table[np.diag_indices(len(table))] = np.inf
+                        r = np.linalg.norm(table, axis=-1)
+                        val += np.sum(sp.erfc(kappa*r) / r)
+                        table[np.diag_indices(len(table))] = 0 #restore
+                    else:
+                        r = np.linalg.norm(table, axis=-1)
+                        val += np.sum(sp.erfc(kappa*r) / r)
+                else:
+                    R = L*np.array([x,y,z])
+                    r = np.linalg.norm(table + R, axis=-1)
+                    val += np.sum(sp.erfc(kappa*r) / r)
+    if one_species:
+        val /= 2
+    return val
+
+def ewald_reciprocal(displacement, kappa, kvecs, volume, \
+        one_species=False):
+    """
+    reciprocal space part of ewald sum
+    kvecs is the array of k vectors over which the sum is done
+    should be in cartesian, and should NOT include k = 0
+    """
+    #flatten first two indices
+    table = displacement.reshape(-1, displacement.shape[-1])
+    ksquared = np.matmul(kvecs, kvecs.transpose())
+    ksquared = np.diagonal(ksquared)
+    kr = np.matmul(kvecs, table.transpose())
+    longrange = np.einsum('i,ij', \
+            np.exp(-ksquared / (4*kappa**2)) / ksquared, \
+            np.cos(kr))
+    #j isnt summed over so this returns a list
+    longrange = np.sum(longrange)
+    longrange *= 4*np.pi/volume
+    if one_species:
+        longrange /= 2
+    return longrange
+
 def ewald(displacement, kappa, kvecs, volume, \
         one_species=False):
     """
@@ -35,6 +85,10 @@ def ewald(displacement, kappa, kvecs, volume, \
     kappa is the convergence parameter
     also written as G in natoli and ceperley (1995)
 
+    rvecs is list of lattice vectors over which
+    to perform the real space sum
+    RVECS SHOULD BE IN CARTESIAN COORDINATES
+
     kvecs is list of kvectors over which to perform the long range sum
     it is assumed that: k = 0 is excluded
     and that kvecs forms a closed shell
@@ -43,10 +97,6 @@ def ewald(displacement, kappa, kvecs, volume, \
 
     the volume of the cell is required to normalize long range term
     """
-    #check if first kvec is 0
-    if np.sum(kvecs[0]) == 0:
-        print('k = 0 is included in kvecs, remove it first!')
-        return None
     #perform real space sum in cell
     table = np.copy(displacement)
     n_rows = table.shape[0]
@@ -54,7 +104,6 @@ def ewald(displacement, kappa, kvecs, volume, \
     ksquared = np.matmul(kvecs, kvecs.transpose())
     ksquared = np.diagonal(ksquared)
     if one_species:
-        #only use upper triangle
         table = table[np.triu_indices(n_rows, k=1)]
     else:
         table = table.reshape(n_rows*n_columns, 3)
@@ -67,6 +116,9 @@ def ewald(displacement, kappa, kvecs, volume, \
             np.cos(kr))
     #j isnt summed over so this returns a list
     longrange = np.sum(longrange)
+    if one_species:
+        #diagonal contribution
+        longrange += n_rows*np.sum(np.exp(-ksquared / (4*kappa**2)) / ksquared)/2
     longrange *= 4*np.pi/volume
     return shortrange + longrange
 
