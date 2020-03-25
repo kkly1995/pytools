@@ -207,6 +207,36 @@ class electron:
         self.down = minimum_image(np.random.rand(self.N_down, 3))
         self.update_displacement()
 
+    def nearest_neighbors(self):
+        """
+        returns the distance between the closest pair of particles
+        made this mostly just for start_semirandom
+        """
+        up_r = np.linalg.norm(self.up_table, axis=-1)
+        up_min = np.min(up_r[np.triu_indices(self.N_up, k=1)])
+        down_r = np.linalg.norm(self.down_table, axis=-1)
+        down_min = np.min(down_r[np.triu_indices(self.N_down, k=1)])
+        updown_r = np.linalg.norm(self.up_down_table, axis=-1)
+        updown_min = np.min(updown_r)
+        return min([up_min, down_min, updown_min])
+
+    def start_semirandom(self, tol):
+        """
+        keeps doing start_random() until the no two particles are
+        closer than tol
+
+        returns number of random attempts made
+
+        recommendation: start with small tol
+        and slowly increase until it starts taking too long
+        """
+        self.start_random()
+        count = 1
+        while self.nearest_neighbors() < tol:
+            self.start_random()
+            count += 1
+        return count
+
 class proton:
     """
     class for protons
@@ -249,6 +279,31 @@ class proton:
     def start_random(self):
         self.r = minimum_image(np.random.rand(self.N, 3))
         self.update_displacement()
+
+    def nearest_neighbors(self):
+        """
+        returns the distance between the closest pair of particles
+        made this mostly just for start_semirandom
+        """
+        r = np.linalg.norm(self.up_table, axis=-1)
+        return np.min(r[np.triu_indices(self.N_up, k=1)])
+
+    def start_semirandom(self, tol):
+        """
+        keeps doing start_random() until the no two particles are
+        closer than tol
+
+        returns number of random attempts made
+
+        recommendation: start with small tol
+        and slowly increase until it starts taking too long
+        """
+        self.start_random()
+        count = 1
+        while self.nearest_neighbors() < tol:
+            self.start_random()
+            count += 1
+        return count
 
 class cell:
     """
