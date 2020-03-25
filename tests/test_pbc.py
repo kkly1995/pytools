@@ -118,41 +118,40 @@ def test_ewald_reciprocal():
 
 def test_ewald():
     """
-    currently just tests implementation against for loops
-    need to eventually check it against madelung constants
+    test ewald sum to see if it can get madelung const for CsCl
+    using a 3x3x3 supercell
+    the charges are created with the electron class,
+    where up and down refer to opposite charges
     """
-    L = 6.9
-    displacement = L*np.random.rand(11, 11, 3)
-    r = np.linalg.norm(displacement, axis=-1)
-    #make supercell to get kvecs
+    alpha = 1.7627 #desired answer
+    L = 4.12*3 #4.12 is the lattice const for CsCl
+    charge = pbc.electron(27, 27)
+    #make structure
+    count = 0
+    for x in range(3):
+        for y in range(3):
+            for z in range(3):
+                charge.up[count] = [x/3, y/3, z/3]
+                count += 1
+    charge.down = np.copy(charge.up) + 1/6
+    charge.update_displacement()
+    #construct k vectors to sum over
     v = L*np.eye(3)
     supercell = pbc.cell(v[0], v[1], v[2])
-    k = supercell.fermi_sea(2)[1:,:3]
+    k = supercell.fermi_sea(3)[1:,:3]
     k *= 2*np.pi/L
-    kappa = 6/L
-    volume = supercell.volume
-    manual = 0
-    symmetric_manual = 0
-    for i in range(11):
-        for j in range(11):
-            val = erfc(kappa*r[i,j]) / r[i,j]
-            manual += val
-            if i < j:
-                symmetric_manual += val
-    #begin longrange
-    for i in range(11):
-        for j in range(11):
-            for l in range(len(k)):
-                ksq = np.dot(k[l], k[l])
-                kr = np.dot(k[l], displacement[i,j])
-                prefactor = 4*np.pi/volume
-                pw = np.cos(kr)
-                val = prefactor*np.exp(-ksq / (4*kappa**2))*pw/ksq
-                manual += val
-                if i < j+1:
-                    symmetric_manual += val
-    assert isclose(manual, pbc.ewald(displacement, kappa, k, volume)), \
-            'ewald failed for one_species=False'
-    assert isclose(symmetric_manual, pbc.ewald(displacement, kappa, k, \
-            volume, one_species=True)), \
-            'ewald failed for one_species=True'
+    kappa = 4/L #convergence is around here
+    #begin ewald sums
+    ppterm = pbc.ewald(charge.up_table*L, kappa, k, L,\
+            one_species=True)
+    mmterm = pbc.ewald(charge.down_table*L, kappa, k, L,\
+            one_species=True)
+    pmterm = pbc.ewald(charge.up_down_table*L, kappa, k, L,\
+            one_species=False)
+    self_term = 54*kappa/np.sqrt(np.pi)
+    energy = ppterm + mmterm - pmterm - self_term
+    #compute madelung constant
+    r = L*np.min(np.linalg.norm(charge.up_down_table, axis=-1))
+    madelung = -energy*r/27
+    assert isclose(madelung, alpha, abs_tol=0.0001), \
+            'ewald failed to compute madelung constant for CsCl'

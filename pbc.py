@@ -65,7 +65,7 @@ def ewald_reciprocal(displacement, kappa, kvecs, volume, \
         longrange /= 2
     return longrange
 
-def ewald(displacement, kappa, kvecs, volume, \
+def ewald(displacement, kappa, kvecs, L, \
         one_species=False):
     """
     perform ewald sum according to the first two terms of eq 6.4
@@ -95,32 +95,46 @@ def ewald(displacement, kappa, kvecs, volume, \
     so that this potential is real (replace exp with cos)
     KVECS SHOULD BE IN CARTESIAN COORDINATES
 
-    the volume of the cell is required to normalize long range term
+    L is the side length of the cubic cell
+    (this currently only works for cubic cell)
     """
     #perform real space sum in cell
     table = np.copy(displacement)
-    n_rows = table.shape[0]
-    n_columns = table.shape[1]
+    shortrange = 0
+    for x in range(-1,2):
+        for y in range(-1,2):
+            for z in range(-1,2):
+                if x == y == z == 0:
+                    if one_species:
+                        #avoid diagonal
+                        table[np.diag_indices(len(table))] = np.inf
+                        r = np.linalg.norm(table, axis=-1)
+                        shortrange += np.sum(sp.erfc(kappa*r) / r)
+                        table[np.diag_indices(len(table))] = 0 #restore
+                    else:
+                        r = np.linalg.norm(table, axis=-1)
+                        shortrange += np.sum(sp.erfc(kappa*r) / r)
+                else:
+                    R = L*np.array([x,y,z])
+                    r = np.linalg.norm(table + R, axis=-1)
+                    shortrange += np.sum(sp.erfc(kappa*r) / r)
+    #begin long range term
+    volume = L**3
+    #flatten first two indices
+    table = displacement.reshape(-1, displacement.shape[-1])
     ksquared = np.matmul(kvecs, kvecs.transpose())
     ksquared = np.diagonal(ksquared)
-    if one_species:
-        table = table[np.triu_indices(n_rows, k=1)]
-    else:
-        table = table.reshape(n_rows*n_columns, 3)
-    r = np.linalg.norm(table, axis=-1)
-    shortrange = np.sum(sp.erfc(kappa*r) / r)
-    #begin long range term
     kr = np.matmul(kvecs, table.transpose())
     longrange = np.einsum('i,ij', \
             np.exp(-ksquared / (4*kappa**2)) / ksquared, \
             np.cos(kr))
     #j isnt summed over so this returns a list
     longrange = np.sum(longrange)
-    if one_species:
-        #diagonal contribution
-        longrange += n_rows*np.sum(np.exp(-ksquared / (4*kappa**2)) / ksquared)/2
     longrange *= 4*np.pi/volume
-    return shortrange + longrange
+    if one_species:
+        return (shortrange + longrange)/2
+    else:
+        return shortrange + longrange
 
 class electron:
     """
