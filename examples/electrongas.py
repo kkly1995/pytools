@@ -62,7 +62,7 @@ class wavefunction:
         """
         kr = np.matmul(self.k[:self.N], self.electron.down[i])
         kr *= 2*np.pi
-        self.slater_up[:,i] = np.exp(1j*kr)
+        self.slater_down[:,i] = np.exp(1j*kr)
 
     def psi(self):
         """
