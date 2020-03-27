@@ -15,57 +15,35 @@ def minimum_image(r):
     """
     return r - np.round(r)
 
-def ewald_real(displacement, kappa, L, one_species=False):
+def ewald_sr(kappa, r):
     """
-    testing real space sum separately
-    L is side length of cube (only works for cubic)
-    """
-    table = np.copy(displacement)
-    val = 0
-    for x in range(-1,2):
-        for y in range(-1,2):
-            for z in range(-1,2):
-                if x == y == z == 0:
-                    if one_species:
-                        #avoid diagonal
-                        table[np.diag_indices(len(table))] = np.inf
-                        r = np.linalg.norm(table, axis=-1)
-                        val += np.sum(sp.erfc(kappa*r) / r)
-                        table[np.diag_indices(len(table))] = 0 #restore
-                    else:
-                        r = np.linalg.norm(table, axis=-1)
-                        val += np.sum(sp.erfc(kappa*r) / r)
-                else:
-                    R = L*np.array([x,y,z])
-                    r = np.linalg.norm(table + R, axis=-1)
-                    val += np.sum(sp.erfc(kappa*r) / r)
-    if one_species:
-        val /= 2
-    return val
+    shortrange part of ewald sum for 1/r potential
 
-def ewald_reciprocal(displacement, kappa, kvecs, volume, \
-        one_species=False):
+    not summed over, so this is suitable for tabulation
+    
+    r is a scalar or array of scalars
     """
-    reciprocal space part of ewald sum
-    kvecs is the array of k vectors over which the sum is done
-    should be in cartesian, and should NOT include k = 0
+    return sp.erfc(kappa*r) / r
+
+def ewald_lr(r, kappa, kvecs, volume):
     """
-    #flatten first two indices
-    table = displacement.reshape(-1, displacement.shape[-1])
+    longrange part of ewald sum for 1/r potential
+
+    not summed over, so this is suitable for tabulation
+
+    unlike in ewald_sr, r is an array of vectors
+    i.e. r.shape[-1] must be 3
+    where this last axis accesses the components of the vector
+    """
     ksquared = np.matmul(kvecs, kvecs.transpose())
     ksquared = np.diagonal(ksquared)
-    kr = np.matmul(kvecs, table.transpose())
-    longrange = np.einsum('i,ij', \
-            np.exp(-ksquared / (4*kappa**2)) / ksquared, \
-            np.cos(kr))
-    #j isnt summed over so this returns a list
-    longrange = np.sum(longrange)
+    kr = np.matmul(r, kvecs.transpose())
+    longrange = np.matmul(np.cos(kr),\
+            np.exp(-ksquared / (4*kappa**2)) / ksquared)
     longrange *= 4*np.pi/volume
-    if one_species:
-        longrange /= 2
     return longrange
 
-def ewald(displacement, kappa, kvecs, L, \
+def ewald(displacement, kappa, kvecs, volume, \
         one_species=False):
     """
     perform ewald sum according to the first two terms of eq 6.4
@@ -85,56 +63,27 @@ def ewald(displacement, kappa, kvecs, L, \
     kappa is the convergence parameter
     also written as G in natoli and ceperley (1995)
 
-    rvecs is list of lattice vectors over which
-    to perform the real space sum
-    RVECS SHOULD BE IN CARTESIAN COORDINATES
-
     kvecs is list of kvectors over which to perform the long range sum
     it is assumed that: k = 0 is excluded
-    and that kvecs forms a closed shell
+    and the list is symmetric i.e. if k in the list, then -k is too
     so that this potential is real (replace exp with cos)
     KVECS SHOULD BE IN CARTESIAN COORDINATES
+    and must have shape (N,3), where first axis enumerates the vectors
+    and second axis accesses a vector's components
 
-    L is the side length of the cubic cell
-    (this currently only works for cubic cell)
+    volume is the size of the supercell, must have units
+    consistent with kvecs and displacement table
     """
     #perform real space sum in cell
-    table = np.copy(displacement)
-    shortrange = 0
-    for x in range(-1,2):
-        for y in range(-1,2):
-            for z in range(-1,2):
-                if x == y == z == 0:
-                    if one_species:
-                        #avoid diagonal
-                        table[np.diag_indices(len(table))] = np.inf
-                        r = np.linalg.norm(table, axis=-1)
-                        shortrange += np.sum(sp.erfc(kappa*r) / r)
-                        table[np.diag_indices(len(table))] = 0 #restore
-                    else:
-                        r = np.linalg.norm(table, axis=-1)
-                        shortrange += np.sum(sp.erfc(kappa*r) / r)
-                else:
-                    R = L*np.array([x,y,z])
-                    r = np.linalg.norm(table + R, axis=-1)
-                    shortrange += np.sum(sp.erfc(kappa*r) / r)
-    #begin long range term
-    volume = L**3
-    #flatten first two indices
-    table = displacement.reshape(-1, displacement.shape[-1])
-    ksquared = np.matmul(kvecs, kvecs.transpose())
-    ksquared = np.diagonal(ksquared)
-    kr = np.matmul(kvecs, table.transpose())
-    longrange = np.einsum('i,ij', \
-            np.exp(-ksquared / (4*kappa**2)) / ksquared, \
-            np.cos(kr))
-    #j isnt summed over so this returns a list
-    longrange = np.sum(longrange)
-    longrange *= 4*np.pi/volume
+    r = np.linalg.norm(displacement, axis=-1)
     if one_species:
-        return (shortrange + longrange)/2
-    else:
-        return shortrange + longrange
+        r = r[np.triu_indices_from(r, k=1)]
+    shortrange = np.sum(sp.erfc(kappa*r) / r)
+    #begin long range term
+    longrange = np.sum(ewald_lr(displacement, kappa, kvecs, volume))
+    if one_species:
+        longrange /= 2
+    return shortrange + longrange
 
 class electron:
     """

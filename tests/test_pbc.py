@@ -40,83 +40,30 @@ def test_proton_update():
     assert np.isclose(oldtable, test.table).all(), \
         'update_r and update_displacement are inconsistent for proton class'
 
-def test_ewald_real():
-    L = 6.9
-    kappa = 1/L
-    displacement = L*np.random.rand(11, 11, 3)
-    manual = 0
-    for x in range(-1, 2):
-        for y in range(-1, 2):
-            for z in range(-1, 2):
-                #loop of lattice vectors
-                R = L*np.array([x, y, z])
-                for i in range(11):
-                    for j in range(11):
-                        #this is for one_species=False, so i=j irrelevant
-                        r = displacement[i,j] + R
-                        r = np.linalg.norm(r)
-                        manual += erfc(kappa*r) / r
-    estimate = pbc.ewald_real(displacement, kappa, L)
-    assert isclose(estimate, manual)
-    #construct antisymmetric table
-    displacement -= np.transpose(displacement, axes=(1,0,2))
-    manual2 = 0
-    for x in range(-1, 2):
-        for y in range(-1, 2):
-            for z in range(-1, 2):
-                #loop of lattice vectors
-                R = L*np.array([x, y, z])
-                for i in range(11):
-                    for j in range(11):
-                        r = displacement[i,j] + R
-                        r = np.linalg.norm(r)
-                        if r > 0:
-                            manual2 += erfc(kappa*r) / r
-    manual2 /= 2
-    estimate2 = pbc.ewald_real(displacement, kappa, L, one_species=True)
-    assert isclose(estimate2, manual2)
+def test_ewald_lr():
+    """
+    test ewald_lr, which performs the sum over k with matmul
+    against a manual sum over k
+    """
+    #make supercell
+    L = 5*np.random.rand()
+    v = L*np.eye(3)
+    supercell = pbc.cell(v[0], v[1], v[2])
+    volume = supercell.volume
+    kvecs = supercell.fermi_sea(3)[1:,:3]
+    kvecs *= 2*np.pi/L
+    kappa = 5/L
+    r = L*np.random.rand(17, 3)
+    u = np.zeros(17)
+    for n in range(17):
+        for k in kvecs:
+            ksq = np.dot(k, k)
+            kr = np.dot(k, r[n])
+            u[n] += np.cos(kr)*np.exp(-ksq / (4*kappa**2)) / ksq
+    u *= 4*np.pi/volume
+    assert np.isclose(pbc.ewald_lr(r, kappa, kvecs, volume), u).all()
 
-def test_ewald_reciprocal():
-    L = 6.9
-    kappa = 1/L
-    volume = L**3
-    displacement = L*np.random.rand(11, 11, 3)
-    kvecs = []
-    manual = 0
-    prefactor = 4*np.pi/volume
-    for x in range(-2, 3):
-        for y in range(-2, 3):
-            for z in range(-2, 3):
-                k = (2*np.pi/L)*np.array([x,y,z])
-                ksquared = np.dot(k, k)
-                if ksquared > 0:
-                    kvecs.append(k)
-                    for i in range(11):
-                        for j in range(11):
-                            kr = np.dot(k, displacement[i,j])
-                            pw = np.cos(kr)
-                            manual += prefactor * pw * \
-                                    np.exp(-ksquared / (4*kappa**2)) / ksquared
-    kvecs = np.array(kvecs)
-    estimate = pbc.ewald_reciprocal(displacement, kappa, kvecs, volume)
-    #now do one_species = True
-    displacement -= np.transpose(displacement, axes=(1,0,2))
-    manual2 = 0
-    for k in kvecs:
-        ksquared = np.dot(k, k)
-        for i in range(11):
-            for j in range(11):
-                kr = np.dot(k, displacement[i, j])
-                pw = np.cos(kr)
-                manual2 += prefactor * pw * \
-                        np.exp(-ksquared / (4*kappa**2)) / ksquared
-    manual2 /= 2
-    estimate2 = pbc.ewald_reciprocal(displacement, kappa, kvecs, volume, \
-            one_species=True)
-    assert isclose(estimate, manual)
-    assert isclose(estimate2, manual2)
-
-def test_ewald():
+def test_ewald_madelung():
     """
     test ewald sum to see if it can get madelung const for CsCl
     using a 3x3x3 supercell
@@ -138,15 +85,16 @@ def test_ewald():
     #construct k vectors to sum over
     v = L*np.eye(3)
     supercell = pbc.cell(v[0], v[1], v[2])
-    k = supercell.fermi_sea(3)[1:,:3]
+    k = supercell.fermi_sea(4)[1:,:3]
     k *= 2*np.pi/L
-    kappa = 4/L #convergence is around here
+    kappa = 6/L #convergence is around here
     #begin ewald sums
-    ppterm = pbc.ewald(charge.up_table*L, kappa, k, L,\
+    vol = supercell.volume
+    ppterm = pbc.ewald(charge.up_table*L, kappa, k, vol,\
             one_species=True)
-    mmterm = pbc.ewald(charge.down_table*L, kappa, k, L,\
+    mmterm = pbc.ewald(charge.down_table*L, kappa, k, vol,\
             one_species=True)
-    pmterm = pbc.ewald(charge.up_down_table*L, kappa, k, L,\
+    pmterm = pbc.ewald(charge.up_down_table*L, kappa, k, vol,\
             one_species=False)
     self_term = 54*kappa/np.sqrt(np.pi)
     energy = ppterm + mmterm - pmterm - self_term
