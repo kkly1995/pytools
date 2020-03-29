@@ -4,6 +4,26 @@ tools related to inputs / outputs from QMCPACK
 
 import numpy as np
 
+def read_energy(fname):
+    """
+    read energy and error from a qmca output in fname
+    assumes only one series
+    so only two numbers are returned
+    """
+    with open(fname, 'r') as f:
+        lines = f.readlines()
+    for line in lines:
+        words = line.split()
+        try:
+            if words[0] == 'LocalEnergy':
+                energy = float(words[2])
+                error = float(words[4])
+                return energy, error
+        except:
+            pass
+    #if it makes it out the loop, energy was not found
+    print('LocalEnergy not found')
+
 def read_force(fname):
     """
     read the forces on atoms from a qmca output in fname
