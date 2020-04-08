@@ -25,6 +25,15 @@ def ewald_sr(kappa, r):
     """
     return sp.erfc(kappa*r) / r
 
+def ewald_sr_prime(kappa, r):
+    """
+    first derivative of ewald_sr wrt r
+    """
+    val = 2*kappa*r*np.exp(-(kappa*r)**2) / np.sqrt(np.pi)
+    val += sp.erfc(kappa*r)
+    val /= r**2
+    return -val
+
 def ewald_lr(r, kappa, kvecs, volume):
     """
     longrange part of ewald sum for 1/r potential
@@ -40,6 +49,35 @@ def ewald_lr(r, kappa, kvecs, volume):
     kr = np.matmul(r, kvecs.transpose())
     longrange = np.matmul(np.cos(kr),\
             np.exp(-ksquared / (4*kappa**2)) / ksquared)
+    longrange *= 4*np.pi/volume
+    return longrange
+
+def grad_ewald_lr(r, kappa, kvecs, volume):
+    """
+    gradient of ewald_lr wrt r
+    note the difference between this and ewald_sr_prime:
+    since ewald_sr depends only on the magnitude of r,
+    it makes more sense in that case to compute the magnitude of r
+    externally, and then provide the direction afterwards
+    since many other functions will also require that magnitude
+    and so one avoids computing it multiple times
+
+    here, the direction is less trivial
+    and is essentially a weighted sum over kvecs
+
+    note that if r = r_i - r_j,
+    this computes the gradient wrt r_i
+    and does not have the correct sign if
+    the gradient wrt r_j is desired
+    """
+    ksquared = np.matmul(kvecs, kvecs.transpose())
+    ksquared = np.diagonal(ksquared)
+    kr = np.matmul(r, kvecs.transpose())
+    #have to get a little tricky here
+    exppart = np.exp(-ksquared / (4*kappa**2)) / ksquared
+    exppart = exppart*kvecs.transpose() #now includes direction of kvecs
+    exppart = exppart.transpose() #ensure the second axis has the components
+    longrange = -np.matmul(np.sin(kr), exppart)
     longrange *= 4*np.pi/volume
     return longrange
 

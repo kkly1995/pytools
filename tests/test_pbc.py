@@ -103,3 +103,36 @@ def test_ewald_madelung():
     madelung = -energy*r/27
     assert isclose(madelung, alpha, abs_tol=0.0001), \
             'ewald failed to compute madelung constant for CsCl'
+
+def test_grad_ewald_lr():
+    L = 5*np.random.rand()
+    v = L*np.eye(3)
+    supercell = pbc.cell(v[0], v[1], v[2])
+    volume = supercell.volume
+    kvecs = supercell.fermi_sea(3)[1:,:3]
+    kvecs *= 2*np.pi/L
+    kappa = 5/L
+    r = L*np.random.rand(3)
+    #compute derivatives
+    f = pbc.ewald_lr(r, kappa, kvecs, volume) #h = 0
+    h = 0.00001 #finite difference step
+    r[0] += h
+    ddx = (pbc.ewald_lr(r, kappa, kvecs, volume) - f)/h
+    r[0] -= h
+    r[1] += h
+    ddy = (pbc.ewald_lr(r, kappa, kvecs, volume) - f)/h
+    r[1] -= h
+    r[2] += h
+    ddz = (pbc.ewald_lr(r, kappa, kvecs, volume) - f)/h
+    grad = np.array([ddx, ddy, ddz])
+    assert np.isclose(grad, pbc.grad_ewald_lr(r, kappa, kvecs, volume),\
+            rtol=1e-3).all()
+
+def test_ewald_sr_prime():
+    L = 5
+    kappa = 1
+    r = np.linspace(1, 2)
+    f = pbc.ewald_sr(kappa, r)
+    df = np.gradient(f, r[1] - r[0])
+    assert np.isclose(pbc.ewald_sr_prime(kappa, r)[1:-1], df[1:-1],\
+            rtol = 1e-2).all()
