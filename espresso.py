@@ -104,3 +104,21 @@ def read_atomic_positions(fname, n_atoms):
         print('too many atoms were specified')
     if found == False:
         print('atomic positions were not found')
+
+def read_energy(fname):
+    """
+    read energy from pw.x output file fname
+    just finds the line that starts with !
+    and returns the second to last word
+    """
+    with open(fname, 'r') as f:
+        lines = f.readlines()
+    for line in lines:
+        words = line.split()
+        try:
+            if words[0] == "!":
+                return float(words[-2])
+        except:
+            pass
+    #if it makes it out of the loop, energy hasnt been found
+    print('energy not found')
