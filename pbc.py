@@ -29,10 +29,16 @@ def ewald_sr_prime(kappa, r):
     """
     first derivative of ewald_sr wrt r
     """
-    val = 2*kappa*r*np.exp(-(kappa*r)**2) / np.sqrt(np.pi)
-    val += sp.erfc(kappa*r)
-    val /= r**2
-    return -val
+    first_term = 2*kappa*np.exp(-(kappa*r)**2)
+    first_term /= np.sqrt(np.pi)*r
+    second_term = sp.erfc(kappa*r) / r**2
+    return -(first_term + second_term)
+
+def laplacian_ewald_sr(kappa, r):
+    """
+    laplacian of ewald_sr wrt r
+    """
+    return 4*(kappa**3)*np.exp(-(kappa*r)**2) / np.sqrt(np.pi)
 
 def ewald_lr(r, kappa, kvecs, volume):
     """

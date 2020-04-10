@@ -136,3 +136,15 @@ def test_ewald_sr_prime():
     df = np.gradient(f, r[1] - r[0])
     assert np.isclose(pbc.ewald_sr_prime(kappa, r)[1:-1], df[1:-1],\
             rtol = 1e-2).all()
+
+def test_laplacian_ewald_sr():
+    kappa = 1
+    r = 0.1 + np.random.rand()
+    h = 0.0001
+    ddr = pbc.ewald_sr(kappa, r+h) - pbc.ewald_sr(kappa, r-h)
+    ddr /= 2*h
+    ddr2 = pbc.ewald_sr(kappa, r+h) + pbc.ewald_sr(kappa, r-h) -\
+            2*pbc.ewald_sr(kappa, r)
+    ddr2 /= h**2
+    lap = 2*ddr/r + ddr2
+    assert isclose(pbc.laplacian_ewald_sr(kappa, r), lap, rel_tol=h)
