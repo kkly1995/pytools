@@ -87,6 +87,25 @@ def grad_ewald_lr(r, kappa, kvecs, volume):
     longrange *= 4*np.pi/volume
     return longrange
 
+def laplacian_ewald_lr(r, kappa, kvecs, volume):
+    """
+    computes laplacian of ewald_lr
+    not as sophisticated as grad_ewald_lr since this,
+    just like ewald_lr, returns a scalar
+    for every vector r
+    
+    in fact the expression is nearly identical to ewald_lr
+    but with a minus sign outside
+    and no factor of k^2 in denominator
+    """
+    ksquared = np.matmul(kvecs, kvecs.transpose())
+    ksquared = np.diagonal(ksquared)
+    kr = np.matmul(r, kvecs.transpose())
+    longrange = np.matmul(np.cos(kr),\
+            np.exp(-ksquared / (4*kappa**2)))
+    longrange *= -4*np.pi/volume
+    return longrange
+
 def ewald(displacement, kappa, kvecs, volume, \
         one_species=False):
     """

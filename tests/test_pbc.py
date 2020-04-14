@@ -148,3 +148,27 @@ def test_laplacian_ewald_sr():
     ddr2 /= h**2
     lap = 2*ddr/r + ddr2
     assert isclose(pbc.laplacian_ewald_sr(kappa, r), lap, rel_tol=h)
+
+def test_laplacian_ewald_lr():
+    L = 5*np.random.rand()
+    v = L*np.eye(3)
+    supercell = pbc.cell(v[0], v[1], v[2])
+    volume = supercell.volume
+    kvecs = supercell.fermi_sea(3)[1:,:3]
+    kvecs *= 2*np.pi/L
+    kappa = 5/L
+    r = L*np.random.rand(3)
+    #compute derivatives
+    f = pbc.ewald_lr(r, kappa, kvecs, volume) #h = 0
+    h = 0.00001 #finite difference step
+    lap = 0
+    for i in range(3):
+        r[i] += h
+        f_fwd = pbc.ewald_lr(r, kappa, kvecs, volume)
+        r[i] -= 2*h
+        f_bwd = pbc.ewald_lr(r, kappa, kvecs, volume)
+        r[i] += h #restore original r
+        lap += (f_fwd + f_bwd - 2*f) / h**2
+    assert np.isclose(lap, pbc.laplacian_ewald_lr(r, kappa, kvecs, volume),\
+            rtol=1e-4)
+
