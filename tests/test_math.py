@@ -135,9 +135,9 @@ def test_coulomb_potential():
     elec.start_random()
     v = 6.9*np.eye(3) #cubic cell, length 6.9
     geometry = cell(v[0], v[1], v[2])
-    up_displacement = geometry.crystal_to_cart(elec.up_table)
-    down_displacement = geometry.crystal_to_cart(elec.down_table)
-    updown_displacement = geometry.crystal_to_cart(elec.up_down_table)
+    up_displacement = geometry.crystal_to_cart(elec.uu_table)
+    down_displacement = geometry.crystal_to_cart(elec.dd_table)
+    updown_displacement = geometry.crystal_to_cart(elec.ud_table)
     #begin computing potentials
     up_potential = pm.coulomb_potential(up_displacement)
     down_potential = pm.coulomb_potential(down_displacement)
@@ -152,11 +152,11 @@ def test_coulomb_potential():
     for i in range(elec.N_up):
         for j in range(i):
             up_manual += 1./r_up[i,j]
-    for i in range(elec.N_down):
+    for i in range(elec.N_dn):
         for j in range(i):
             down_manual += 1./r_down[i,j]
     for i in range(elec.N_up):
-        for j in range(elec.N_down):
+        for j in range(elec.N_dn):
             updown_manual += 1./r_updown[i,j]
     assert isclose(up_potential, up_manual), \
             'coulomb_potential failed for up electrons'

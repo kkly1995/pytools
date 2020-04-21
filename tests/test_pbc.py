@@ -13,17 +13,17 @@ def test_electron_update():
         test.up[i] += np.random.rand(3) - 0.5
         test.update_up(i)
     for i in range(30):
-        test.down[i] += np.random.rand(3) - 0.5
+        test.dn[i] += np.random.rand(3) - 0.5
         test.update_down(i)
-    old_up_table = np.copy(test.up_table)
-    old_down_table = np.copy(test.down_table)
-    old_up_down_table = np.copy(test.up_down_table)
+    old_up_table = np.copy(test.uu_table)
+    old_down_table = np.copy(test.dd_table)
+    old_up_down_table = np.copy(test.ud_table)
     test.update_displacement()
-    assert np.isclose(old_up_table, test.up_table).all(), \
+    assert np.isclose(old_up_table, test.uu_table).all(), \
         'update_up and update_displacement are inconsistent for electron'
-    assert np.isclose(old_down_table, test.down_table).all(), \
+    assert np.isclose(old_down_table, test.dd_table).all(), \
         'update_down and update_displacement are inconsistent for electron'
-    assert np.isclose(old_up_down_table, test.up_down_table).all()
+    assert np.isclose(old_up_down_table, test.ud_table).all()
     
 
 def test_proton_update():
@@ -40,6 +40,35 @@ def test_proton_update():
     assert np.isclose(oldtable, test.table).all(), \
         'update_r and update_displacement are inconsistent for proton class'
 
+def test_hydrogen_update():
+    """
+    move every particle in hydrogen, update with single particle updates
+    then check that update_displacement gives same tables
+    """
+    test = pbc.hydrogen(10, 20, 30)
+    for i in range(10):
+        test.pn[i] += np.random.rand(3) - 0.5
+        test.update_proton(i)
+    for i in range(20):
+        test.up[i] += np.random.rand(3) - 0.5
+        test.update_up(i)
+    for i in range(30):
+        test.dn[i] += np.random.rand(3) - 0.5
+        test.update_down(i)
+    old_up_table = np.copy(test.uu_table)
+    old_down_table = np.copy(test.dd_table)
+    old_up_down_table = np.copy(test.ud_table)
+    old_pp_table = np.copy(test.pp_table)
+    old_pe_table = np.copy(test.pe_table)
+    test.update_displacement()
+    assert np.isclose(old_up_table, test.uu_table).all(), \
+        'update_up and update_displacement are inconsistent for electron'
+    assert np.isclose(old_down_table, test.dd_table).all(), \
+        'update_down and update_displacement are inconsistent for electron'
+    assert np.isclose(old_up_down_table, test.ud_table).all()
+    assert np.isclose(old_pp_table, test.pp_table).all()
+    assert np.isclose(old_pe_table, test.pe_table).all()
+
 def test_ewald_lr():
     """
     test ewald_lr, which performs the sum over k with matmul
@@ -50,7 +79,7 @@ def test_ewald_lr():
     v = L*np.eye(3)
     supercell = pbc.cell(v[0], v[1], v[2])
     volume = supercell.volume
-    kvecs = supercell.fermi_sea(3)[1:,:3]
+    kvecs = supercell.kvecs(3)[1:,:3]
     kvecs *= 2*np.pi/L
     kappa = 5/L
     r = L*np.random.rand(17, 3)
@@ -80,26 +109,26 @@ def test_ewald_madelung():
             for z in range(3):
                 charge.up[count] = [x/3, y/3, z/3]
                 count += 1
-    charge.down = np.copy(charge.up) + 1/6
+    charge.dn = np.copy(charge.up) + 1/6
     charge.update_displacement()
     #construct k vectors to sum over
     v = L*np.eye(3)
     supercell = pbc.cell(v[0], v[1], v[2])
-    k = supercell.fermi_sea(4)[1:,:3]
+    k = supercell.kvecs(4)[1:,:3]
     k *= 2*np.pi/L
     kappa = 6/L #convergence is around here
     #begin ewald sums
     vol = supercell.volume
-    ppterm = pbc.ewald(charge.up_table*L, kappa, k, vol,\
+    ppterm = pbc.ewald(charge.uu_table*L, kappa, k, vol,\
             one_species=True)
-    mmterm = pbc.ewald(charge.down_table*L, kappa, k, vol,\
+    mmterm = pbc.ewald(charge.dd_table*L, kappa, k, vol,\
             one_species=True)
-    pmterm = pbc.ewald(charge.up_down_table*L, kappa, k, vol,\
+    pmterm = pbc.ewald(charge.ud_table*L, kappa, k, vol,\
             one_species=False)
     self_term = 54*kappa/np.sqrt(np.pi)
     energy = ppterm + mmterm - pmterm - self_term
     #compute madelung constant
-    r = L*np.min(np.linalg.norm(charge.up_down_table, axis=-1))
+    r = L*np.min(np.linalg.norm(charge.ud_table, axis=-1))
     madelung = -energy*r/27
     assert isclose(madelung, alpha, abs_tol=0.0001), \
             'ewald failed to compute madelung constant for CsCl'
@@ -109,7 +138,7 @@ def test_grad_ewald_lr():
     v = L*np.eye(3)
     supercell = pbc.cell(v[0], v[1], v[2])
     volume = supercell.volume
-    kvecs = supercell.fermi_sea(3)[1:,:3]
+    kvecs = supercell.kvecs(3)[1:,:3]
     kvecs *= 2*np.pi/L
     kappa = 5/L
     r = L*np.random.rand(3)
@@ -154,7 +183,7 @@ def test_laplacian_ewald_lr():
     v = L*np.eye(3)
     supercell = pbc.cell(v[0], v[1], v[2])
     volume = supercell.volume
-    kvecs = supercell.fermi_sea(3)[1:,:3]
+    kvecs = supercell.kvecs(3)[1:,:3]
     kvecs *= 2*np.pi/L
     kappa = 5/L
     r = L*np.random.rand(3)

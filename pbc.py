@@ -161,62 +161,62 @@ class electron:
         N_up and N_down set number of up and down electrons
 
         up contains crystal coordinates of up electrons,
-        down contains crystal coordinates for down electrons,
-        up_table contains relative displacements of up electrons
+        dn contains crystal coordinates for down electrons,
+        uu contains relative displacements of up electrons
         IN MINIMUM IMAGE CONVENTION
-        i.e. up_table[a,b] is the minimum image of up[a] - up[b]
-        and similarly for down_table, up_down_table
+        i.e. uu[a,b] is the minimum image of up[a] - up[b]
+        and similarly for dd, ud
         """
         self.up = np.zeros((N_up, 3))
-        self.down = np.zeros((N_down, 3))
-        self.up_table = np.zeros((N_up, N_up, 3))
-        self.down_table = np.zeros((N_down, N_down, 3))
-        self.up_down_table = np.zeros((N_up, N_down, 3))
+        self.dn = np.zeros((N_down, 3))
+        self.uu_table = np.zeros((N_up, N_up, 3))
+        self.dd_table = np.zeros((N_down, N_down, 3))
+        self.ud_table = np.zeros((N_up, N_down, 3))
         self.N_up = N_up
-        self.N_down = N_down
+        self.N_dn = N_down
 
     def update_displacement(self):
         """
         update all tables
         """
         for i in range(self.N_up):
-            self.up_table[i,:,:] = minimum_image(\
+            self.uu_table[i,:,:] = minimum_image(\
                     self.up[i] - self.up)
-            self.up_down_table[i,:,:] = minimum_image(\
-                    self.up[i] - self.down)
-        for i in range(self.N_down):
-            self.down_table[i,:,:] = minimum_image(\
-                    self.down[i] - self.down)
+            self.ud_table[i,:,:] = minimum_image(\
+                    self.up[i] - self.dn)
+        for i in range(self.N_dn):
+            self.dd_table[i,:,:] = minimum_image(\
+                    self.dn[i] - self.dn)
 
     def update_up(self, i):
         """
-        update any rows/columns in up_table
-        and up_down_table associated with up electron i
+        update any rows/columns in uu
+        and ud associated with up electron i
         also move it back into cell if outside
         """
         self.up[i] = minimum_image(self.up[i])
         up_up = self.up[i] - self.up
-        up_down = self.up[i] - self.down
-        self.up_table[i,:,:] = minimum_image(up_up)
-        self.up_table[:,i,:] = -minimum_image(up_up)
-        self.up_down_table[i,:,:] = minimum_image(up_down)
+        up_down = self.up[i] - self.dn
+        self.uu_table[i,:,:] = minimum_image(up_up)
+        self.uu_table[:,i,:] = -minimum_image(up_up)
+        self.ud_table[i,:,:] = minimum_image(up_down)
 
     def update_down(self, i):
         """
-        update row/column in down_table
-        and up_down_table associated with down electron i
+        update row/column in dd
+        and ud associated with down electron i
         also move it back into cell if outside
         """
-        self.down[i] = minimum_image(self.down[i])
-        down_down = self.down[i] - self.down
-        up_down = self.up - self.down[i]
-        self.down_table[i,:,:] = minimum_image(down_down)
-        self.down_table[:,i,:] = -minimum_image(down_down)
-        self.up_down_table[:,i,:] = minimum_image(up_down)
+        self.dn[i] = minimum_image(self.dn[i])
+        down_down = self.dn[i] - self.dn
+        up_down = self.up - self.dn[i]
+        self.dd_table[i,:,:] = minimum_image(down_down)
+        self.dd_table[:,i,:] = -minimum_image(down_down)
+        self.ud_table[:,i,:] = minimum_image(up_down)
 
     def start_random(self):
         self.up = minimum_image(np.random.rand(self.N_up, 3))
-        self.down = minimum_image(np.random.rand(self.N_down, 3))
+        self.dn = minimum_image(np.random.rand(self.N_dn, 3))
         self.update_displacement()
 
     def nearest_neighbors(self):
@@ -224,11 +224,11 @@ class electron:
         returns the distance between the closest pair of particles
         made this mostly just for start_semirandom
         """
-        up_r = np.linalg.norm(self.up_table, axis=-1)
+        up_r = np.linalg.norm(self.uu_table, axis=-1)
         up_min = np.min(up_r[np.triu_indices(self.N_up, k=1)])
-        down_r = np.linalg.norm(self.down_table, axis=-1)
-        down_min = np.min(down_r[np.triu_indices(self.N_down, k=1)])
-        updown_r = np.linalg.norm(self.up_down_table, axis=-1)
+        down_r = np.linalg.norm(self.dd_table, axis=-1)
+        down_min = np.min(down_r[np.triu_indices(self.N_dn, k=1)])
+        updown_r = np.linalg.norm(self.ud_table, axis=-1)
         updown_min = np.min(updown_r)
         return min([up_min, down_min, updown_min])
 
@@ -297,8 +297,139 @@ class proton:
         returns the distance between the closest pair of particles
         made this mostly just for start_semirandom
         """
-        r = np.linalg.norm(self.up_table, axis=-1)
+        r = np.linalg.norm(self.uu_table, axis=-1)
         return np.min(r[np.triu_indices(self.N_up, k=1)])
+
+    def start_semirandom(self, tol):
+        """
+        keeps doing start_random() until the no two particles are
+        closer than tol
+
+        returns number of random attempts made
+
+        recommendation: start with small tol
+        and slowly increase until it starts taking too long
+        """
+        self.start_random()
+        count = 1
+        while self.nearest_neighbors() < tol:
+            self.start_random()
+            count += 1
+        return count
+
+class hydrogen:
+    """
+    class for hydrogen
+    contains 3 species: protons, up electrons, and down electrons
+    which at first may seem to require 6 tables
+    but we combine the proton-up and proton-dn tables into pe
+    since for e-p distances the distinction between up and down
+    is irrelevant
+    """
+    def __init__(self, N_proton, N_up, N_down):
+        """
+        N_proton sets number of protons
+        N_up and N_down set number of up and down electrons
+        """
+        self.pn = np.zeros((N_proton, 3))
+        self.up = np.zeros((N_up, 3))
+        self.dn = np.zeros((N_down, 3))
+        self.pp_table = np.zeros((N_proton, N_proton, 3))
+        self.pe_table = np.zeros((N_proton, N_up + N_down, 3))
+        self.uu_table = np.zeros((N_up, N_up, 3))
+        self.dd_table = np.zeros((N_down, N_down, 3))
+        self.ud_table = np.zeros((N_up, N_down, 3))
+        self.N_pn = N_proton
+        self.N_up = N_up
+        self.N_dn = N_down
+
+    def update_displacement(self):
+        """
+        update all tables
+        """
+        for i in range(self.N_pn):
+            self.pp_table[i,:,:] = minimum_image(\
+                    self.pn[i] - self.pn)
+        for i in range(self.N_up):
+            self.uu_table[i,:,:] = minimum_image(\
+                    self.up[i] - self.up)
+            self.ud_table[i,:,:] = minimum_image(\
+                    self.up[i] - self.dn)
+            self.pe_table[:,i,:] = minimum_image(\
+                    self.pn - self.up[i])
+        for i in range(self.N_dn):
+            self.dd_table[i,:,:] = minimum_image(\
+                    self.dn[i] - self.dn)
+            self.pe_table[:,i+self.N_up,:] = minimum_image(\
+                    self.pn - self.dn[i])
+
+    def update_up(self, i):
+        """
+        update any rows/columns in uu, ud
+        and pe associated with up electron i
+        also move it back into cell if outside
+        """
+        self.up[i] = minimum_image(self.up[i])
+        up_up = self.up[i] - self.up
+        up_down = self.up[i] - self.dn
+        pn_up = self.pn - self.up[i]
+        self.uu_table[i,:,:] = minimum_image(up_up)
+        self.uu_table[:,i,:] = -minimum_image(up_up)
+        self.ud_table[i,:,:] = minimum_image(up_down)
+        self.pe_table[:,i,:] = minimum_image(pn_up)
+
+    def update_down(self, i):
+        """
+        update row/column in dd, ud
+        and pe associated with down electron i
+        also move it back into cell if outside
+        """
+        self.dn[i] = minimum_image(self.dn[i])
+        down_down = self.dn[i] - self.dn
+        up_down = self.up - self.dn[i]
+        pn_down = self.pn - self.dn[i]
+        self.dd_table[i,:,:] = minimum_image(down_down)
+        self.dd_table[:,i,:] = -minimum_image(down_down)
+        self.ud_table[:,i,:] = minimum_image(up_down)
+        self.pe_table[:,i+self.N_up,:] = minimum_image(pn_down)
+
+    def update_proton(self, i):
+        """
+        update row/column in pp and pe
+        associated with proton i
+        move it back into cell if outside
+        """
+        self.pn[i] = minimum_image(self.pn[i])
+        pp = self.pn[i] - self.pn
+        pn_up = self.pn[i] - self.up
+        pn_down = self.pn[i] - self.dn
+        self.pp_table[i,:,:] = minimum_image(pp)
+        self.pp_table[:,i,:] = -minimum_image(pp)
+        self.pe_table[i,:self.N_up,:] = minimum_image(pn_up)
+        self.pe_table[i,self.N_up:,:] = minimum_image(pn_down)
+
+    def start_random(self):
+        self.pn = minimum_image(np.random.rand(self.N_pn, 3))
+        self.up = minimum_image(np.random.rand(self.N_up, 3))
+        self.dn = minimum_image(np.random.rand(self.N_dn, 3))
+        self.update_displacement()
+
+    def nearest_neighbors(self):
+        """
+        returns the distance between the closest pair of particles
+        made this mostly just for start_semirandom
+        """
+        pn_r = np.linalg.norm(self.pp_table, axis=-1)
+        pn_min = np.min(pn_r[np.triu_indices(self.N_pn, k=1)])
+        up_r = np.linalg.norm(self.uu_table, axis=-1)
+        up_min = np.min(up_r[np.triu_indices(self.N_up, k=1)])
+        down_r = np.linalg.norm(self.dd_table, axis=-1)
+        down_min = np.min(down_r[np.triu_indices(self.N_dn, k=1)])
+        pe_r = np.linalg.norm(self.pe_table, axis=-1)
+        pe_min = np.min(pe_r)
+        updown_r = np.linalg.norm(self.ud_table, axis=-1)
+        updown_min = np.min(updown_r)
+        return min([pn_min, up_min, down_min, pe_min, updown_min])
 
     def start_semirandom(self, tol):
         """
@@ -360,7 +491,7 @@ class cell:
         """
         return r - np.round(r)
 
-    def fermi_sea(self, N):
+    def kvecs(self, N):
         """
         generates all integers triplets [i, j, k]
         such that i, j, k are between -N and N
@@ -386,7 +517,7 @@ class cell:
 
     def closed_shell(self, sea, k_fermi):
         """
-        take a fermi sea, of the kind returned by self.fermi_sea,
+        take a list of k vectors, the kind return by self.kvecs,
         cut off at specified k_fermi
         and remove half the wavevectors in the following way:
         if wavevector k is in the list, do not include -k,
