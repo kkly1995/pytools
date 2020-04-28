@@ -8,28 +8,27 @@ import matplotlib.pyplot as plt
 import math
 from scipy.integrate import trapz
 
-def autocorrelation(dataset, offset):
-    #data set is a 1D list
-    mean = np.mean(dataset)
-    var = np.var(dataset)
-    autocorr = 0
-    for i in range(offset, len(dataset)):
-        term = (dataset[i - offset] - mean)*(dataset[i] - mean)
-        term /= var
-        autocorr += term
-    return autocorr / len(dataset)
+def autocorrelation(data):
+    """
+    compute autocorrelation for data
+    which is 1D array or similar
 
-def correlation_time(dataset, cutoff, show=False):
+    computed via FFT, see e.g. Newman and Barkema s3.3.1
+    """
+    data_fft = np.fft.fft(data) #pad with zeros
+    data_fft[0] = 0 #remove 0 frequency component
+    func = np.fft.ifft(np.abs(data_fft)**2)
+    func /= func[0] #normalize
+    return np.real(func)
+
+def correlation_time(data, cutoff, show=False):
     """
     cutoff must always be specified, since ideally dataset is large
     """
-    correlations = []
-    times = np.arange(1, cutoff)
-    for time in times:
-        correlations.append(autocorrelation(dataset, time))
+    correlations = autocorrelation(data)[:cutoff]
     correlationtime = 1 + 2*sum(correlations)
     if show:
-        plt.plot(times, np.array(correlations), 'r-')
+        plt.plot(correlations, 'r-')
         plt.title('correlation time = ' + str(correlationtime))
         plt.axhline()
         plt.show()
