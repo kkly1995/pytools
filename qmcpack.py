@@ -24,10 +24,13 @@ def read_energy(fname):
     #if it makes it out the loop, energy was not found
     print('LocalEnergy not found')
 
-def read_force(fname):
+def read_force(fname, name='force'):
     """
     read the forces on atoms from a qmca output in fname
     assumes only one series
+
+    name is the same as the name tag in qmcpack input
+    when specifying the estimator
     """
     with open(fname, 'r') as f:
         lines = f.readlines()
@@ -37,7 +40,7 @@ def read_force(fname):
     for line in lines:
         words = line.split()
         try:
-            if words[0][:6] == 'force_':
+            if words[0][:6] == '%s_' % name:
                 label = words[0].split('_')
                 atom = int(label[-2])
                 component = int(label[-1])
