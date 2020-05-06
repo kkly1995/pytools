@@ -397,9 +397,11 @@ class hydrogen:
         """
         update row/column in pp and pe
         associated with proton i
-        move it back into cell if outside
+
+        currently testing: do NOT move back into cell
+        but still use minimum image
         """
-        self.pn[i] = minimum_image(self.pn[i])
+        #self.pn[i] = minimum_image(self.pn[i])
         pp = self.pn[i] - self.pn
         pn_up = self.pn[i] - self.up
         pn_down = self.pn[i] - self.dn
