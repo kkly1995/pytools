@@ -499,7 +499,7 @@ class cell:
         in reciprocal coordinates
         and hence are commensurate with this cell
 
-        returns an array of shape (2N+1, 4)
+        returns an array of shape ((2N+1)^3, 4)
         the extra column is the norm of the wavevector
         where the norm is computed in cartesian coordinates
         
