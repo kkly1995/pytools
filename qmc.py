@@ -2,6 +2,7 @@
 collection of functions specifically for QMC
 """
 import numpy as np
+import math
 
 def SMW(oldinverse, difference, detratio):
     """
@@ -25,3 +26,19 @@ def SMW(oldinverse, difference, detratio):
     newinverse /= detratio
     newinverse += oldinverse
     return newinverse
+
+def transition_ratio(timestep, position_new, position_old,\
+        drift_new, drift_old):
+    """
+    transition ratio corresponding to drift
+    i.e. the new position (position_new) was sampled using a gaussian move
+    with variance equal to timestep plus drift_old
+    and drift_new is the drift evaluated at the new position
+
+    in PBC position_new can be computed in minimum image convention (?)
+    """
+    move_fwd = position_new - position_old - timestep*drift_old
+    move_bwd = position_old - position_new - timestep*drift_new
+    logratio = np.dot(move_fwd, move_fwd) - np.dot(move_bwd, move_bwd)
+    logratio /= 2*timestep
+    return math.exp(logratio)
