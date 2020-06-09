@@ -297,8 +297,8 @@ class proton:
         returns the distance between the closest pair of particles
         made this mostly just for start_semirandom
         """
-        r = np.linalg.norm(self.uu_table, axis=-1)
-        return np.min(r[np.triu_indices(self.N_up, k=1)])
+        r = np.linalg.norm(self.table, axis=-1)
+        return np.min(r[np.triu_indices(self.N, k=1)])
 
     def start_semirandom(self, tol):
         """

@@ -27,10 +27,10 @@ def SMW(oldinverse, difference, detratio):
     newinverse += oldinverse
     return newinverse
 
-def transition_ratio(timestep, position_new, position_old,\
+def log_transition_ratio(timestep, position_new, position_old,\
         drift_new, drift_old):
     """
-    transition ratio corresponding to drift
+    log of transition ratio corresponding to drift
     i.e. the new position (position_new) was sampled using a gaussian move
     with variance equal to timestep plus drift_old
     and drift_new is the drift evaluated at the new position
@@ -41,4 +41,4 @@ def transition_ratio(timestep, position_new, position_old,\
     move_bwd = position_old - position_new - timestep*drift_new
     logratio = np.dot(move_fwd, move_fwd) - np.dot(move_bwd, move_bwd)
     logratio /= 2*timestep
-    return math.exp(logratio)
+    return logratio
