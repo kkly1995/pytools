@@ -57,6 +57,20 @@ class wavefunction:
         """
         return -np.sum(np.triu(self.u, k=1))
     
+    def grad_u(self):
+        """
+        returns gradient of u, same shape as displacement table
+        also antisymmetric, just like aforementioned table
+        
+        to be done: save this gradient as an attribute of object
+        """
+        r = self.L*np.linalg.norm(self.atom.table, axis=-1)
+        r[r == 0] = np.inf
+        uprime = -(self.a2 / r)*self.u
+        ugrad = uprime[:,:,np.newaxis]*self.atom.table
+        ugrad /= r[:,:,np.newaxis]
+        return ugrad
+    
     def sample(self, i, scale):
         """
         generate sample by moving atom i
@@ -80,34 +94,17 @@ class wavefunction:
             return True
         else:
             #move has been rejected
-            self.atom.r -= displacement
+            self.atom.r[i] -= displacement
             self.atom.update_r(i)
             self.u = np.copy(old_u)
             return False
         
 if __name__=="__main__":
     #initialize
-    N = 108
+    N = 11
     test = wavefunction(N, 2.6, 5)
-    test.atom.start_random()
+    #test.atom.start_random()
+    with open('11.cfg', 'r') as f:
+        test.atom.r = np.loadtxt(f)
+    test.atom.update_displacement()
     test.update_u_all()
-    
-    #warmup
-    stepsize = 0.6
-    a = 0
-    for j in range(100):
-        for i in range(N):
-            a += test.sample(i, stepsize)
-            
-    #make a histgram of distances
-    r = np.linalg.norm(test.atom.table, axis=-1)
-    x = np.linspace(0, math.sqrt(3)/2) #bins for histogram
-    y = np.histogram(r[np.triu_indices(N, k=1)], bins=x, density=True)[0]
-    #measure more
-    for j in range(100):
-        for i in range(N):
-            test.sample(i, stepsize)
-        if (j%10) == 9:
-            r = np.linalg.norm(test.atom.table, axis=-1)
-            y += np.histogram(r[np.triu_indices(N, k=1)], bins=x, \
-                                   density=True)[0]
