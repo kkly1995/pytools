@@ -79,6 +79,27 @@ class wavefunction:
         """
         return -np.sum(self.g_u, axis=1)
 
+    def d_logpsi_d_a1(self):
+        """
+        derivative of logpsi w.r.t parameter a1
+        somewhat trivial
+        """
+        return (self.a2/self.a1)*self.logpsi()
+
+    def d_logpsi_d_a2(self):
+        """
+        derivative of logpsi w.r.t. parameter a2
+        less trivial
+
+        the diagonal of r is set to a1 rather than inf
+        so that the diagonal of 1/r is 1, rather than 0
+        so we can take the log of it without numpy complaining
+        """
+        r = self.L*np.linalg.norm(self.He.table, axis=-1)
+        r[np.diag_indices(self.He.N)] = self.a1 #prevent division by zero
+        logpart = np.log(self.a1 / r)
+        return -np.sum(np.triu(logpart*self.u, k=1))
+
     def drift(self, i):
         """
         similar to g_logpsi but is just the gradient w.r.t atom i
@@ -208,9 +229,9 @@ class wavefunction:
 if __name__=="__main__":
     np.random.seed(69)
     #initialize
-    N = 32
+    N = 64
     wf = wavefunction(N, 2.6, 5)
-    #wf.He.start_semirandom(0.01)
+    wf.He.start_semirandom(0.01)
     with open('configs/He4/%s.dat' % N) as f:
         wf.He.r = np.loadtxt(f)
     wf.He.update_displacement()
@@ -221,24 +242,19 @@ if __name__=="__main__":
 #    for i in range(N):
 #        wf2.update_single(i)
     
-#    #test derivative
-#    step = 0.00001 #in units of L
-#    mid = wf.logpsi()
-#    estimate = 0
-#    for i in range(3):
-#        wf.He.r[1,i] += step
-#        wf.He.update_displacement()
-#        wf.update_all()
-#        fwd = wf.logpsi()
-#        wf.He.r[1,i] -= 2*step
-#        wf.He.update_displacement()
-#        wf.update_all()
-#        bwd = wf.logpsi()
-#        estimate += (fwd + bwd - 2*mid) / (step*wf.L)**2
-#        #return
-#        wf.He.r[1,i] += step
-#        wf.He.update_displacement()
-#        wf.update_all()
+    #test derivative
+    wf.move_all(0.1)
+    step = 0.0001
+    wf.a1 += step
+    wf.update_all()
+    fwd = wf.logpsi()
+    wf.a1 -= 2*step
+    wf.update_all()
+    bwd = wf.logpsi()
+    estimate = (fwd - bwd) / (2*step)
+    #return
+    wf.a1 += step
+    wf.update_all()
 
 #    #test kinetic energy after sampling once
 #    wf.move_all(0.3)
