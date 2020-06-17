@@ -104,11 +104,10 @@ class wavefunction:
         """
         similar to g_logpsi but is just the gradient w.r.t atom i
         ie returns vector of length 3
-        also has opposite sign
 
         separate function since it is a sum over a smaller array
         """
-        return np.sum(self.g_u[i], axis=0)
+        return -np.sum(self.g_u[i], axis=0)
 
     def local_kinetic(self):
         """
@@ -200,7 +199,7 @@ class wavefunction:
             return True
         else:
             #move has been rejected
-            self.He.r[i] -= step
+            self.He.r[i] = np.copy(old_position)
             self.He.update_r(i)
             self.u = np.copy(old_u)
             self.g_u = np.copy(old_g_u)
@@ -230,8 +229,8 @@ if __name__=="__main__":
     np.random.seed(69)
     #initialize
     N = 64
-    wf = wavefunction(N, 2.6, 5)
-    wf.He.start_semirandom(0.01)
+    wf = wavefunction(N, 2.72, 5.018)
+    #wf.He.start_semirandom(0.01)
     with open('configs/He4/%s.dat' % N) as f:
         wf.He.r = np.loadtxt(f)
     wf.He.update_displacement()
@@ -242,19 +241,19 @@ if __name__=="__main__":
 #    for i in range(N):
 #        wf2.update_single(i)
     
-    #test derivative
-    wf.move_all(0.1)
-    step = 0.0001
-    wf.a1 += step
-    wf.update_all()
-    fwd = wf.logpsi()
-    wf.a1 -= 2*step
-    wf.update_all()
-    bwd = wf.logpsi()
-    estimate = (fwd - bwd) / (2*step)
-    #return
-    wf.a1 += step
-    wf.update_all()
+#    #test derivative
+#    wf.move_all(0.1)
+#    step = 0.0001
+#    wf.a1 += step
+#    wf.update_all()
+#    fwd = wf.logpsi()
+#    wf.a1 -= 2*step
+#    wf.update_all()
+#    bwd = wf.logpsi()
+#    estimate = (fwd - bwd) / (2*step)
+#    #return
+#    wf.a1 += step
+#    wf.update_all()
 
 #    #test kinetic energy after sampling once
 #    wf.move_all(0.3)

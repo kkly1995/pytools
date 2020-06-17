@@ -37,8 +37,9 @@ def log_transition_ratio(timestep, position_new, position_old,\
 
     in PBC position_new can be computed in minimum image convention (?)
     """
-    move_fwd = position_new - position_old - timestep*drift_old
-    move_bwd = position_old - position_new - timestep*drift_new
-    logratio = np.dot(move_fwd, move_fwd) - np.dot(move_bwd, move_bwd)
+    numerator_fwd = position_new - position_old - timestep*drift_old
+    numerator_bwd = position_old - position_new - timestep*drift_new
+    logratio = np.dot(numerator_fwd, numerator_fwd) -\
+            np.dot(numerator_bwd, numerator_bwd)
     logratio /= 2*timestep
     return logratio
