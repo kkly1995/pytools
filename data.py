@@ -121,6 +121,7 @@ def bootstrap_mean_error(data, num_bootstraps):
     resamples the data num_bootstraps times
     not recommended for small datasets,
     see e.g. Newman and Barkema ch3
+    also can be memory intensive for large datasets
 
     works on means of arrays as well
     so long as the first index enumerates different data points
