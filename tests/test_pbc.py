@@ -155,7 +155,7 @@ def test_grad_ewald_lr():
     ddz = (pbc.ewald_lr(r, kappa, kvecs, volume) - f)/h
     grad = np.array([ddx, ddy, ddz])
     assert np.isclose(grad, pbc.grad_ewald_lr(r, kappa, kvecs, volume),\
-            rtol=1e-3).all()
+            rtol=1e-2).all()
 
 def test_ewald_sr_prime():
     L = 5

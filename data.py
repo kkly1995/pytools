@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 from scipy.integrate import trapz
+from sklearn.utils import resample
 
 def autocorrelation(data):
     """
@@ -112,3 +113,22 @@ def sort_rows(arr, column):
     sorry to whoever you are
     """
     return arr[arr[:,column].argsort()]
+
+def bootstrap_mean_error(data, num_bootstraps):
+    """
+    given a dataset, this estimates the error
+    for the mean of the data via bootstrap
+    resamples the data num_bootstraps times
+    not recommended for small datasets,
+    see e.g. Newman and Barkema ch3
+
+    works on means of arrays as well
+    so long as the first index enumerates different data points
+    i.e. data[0] is the first array, data[1] is the second, etc
+    sklearn.utils.resample appears to correctly resample along this axis
+    this will result in an array of errors
+    """
+    means = []
+    for i in range(num_bootstraps):
+        means.append(np.mean(resample(data), axis=0))
+    return np.std(means, axis=0)
