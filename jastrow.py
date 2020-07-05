@@ -44,3 +44,26 @@ def laplacian_mcmillan(r, a1, a2):
     val *= (a2 - 1)*a2
     val /= r**2
     return val
+
+def pade(r, a, b, c):
+    """
+    pade form
+    see e.g. qmcpack manual
+    note the sign (positive!)
+    """
+    numerator = a*r + c*r**2
+    denominator = 1 + b*r
+    return numerator/denominator
+
+def pade_prime(r, a, b, c):
+    numerator = a + c*r*(2 + b*r)
+    denominator = (1 + b*r)**2
+    return numerator/denominator
+
+def laplacian_pade(r, a, b, c):
+    numerator = 3 + b*r
+    numerator = 3 + b*r*numerator
+    numerator = a + c*r*numerator
+    numerator *= 2
+    denominator = r*(1 + b*r)**3
+    return numerator/denominator

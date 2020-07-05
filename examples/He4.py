@@ -228,7 +228,7 @@ class wavefunction:
 if __name__=="__main__":
     np.random.seed(69)
     #initialize
-    N = 64
+    N = 32
     wf = wavefunction(N, 2.72, 5.018)
     #wf.He.start_semirandom(0.01)
     with open('configs/He4/%s.dat' % N) as f:
