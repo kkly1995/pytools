@@ -214,3 +214,17 @@ def coulomb_potential(displacement, one_species=True):
     else:
         r = r.flatten() #use every entry
     return np.sum(1./r)
+
+def is_greater_than(a, b):
+    """
+    returns True if a is greater than b
+    however, if a and b are close (as determined by isclose)
+    then this returns False
+
+    this is to try and get more predictable behavior than (a > b)
+    when they are supposed to be the same
+    """
+    if math.isclose(a, b):
+        return False
+    else:
+        return a > b

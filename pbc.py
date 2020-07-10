@@ -5,6 +5,7 @@ in periodic boundary conditions
 import numpy as np
 import scipy.special as sp
 from pytools.data import sort_rows
+from pytools.math import is_greater_than
 
 def minimum_image(r):
     """
@@ -513,7 +514,18 @@ class cell:
         sea = np.array(sea, dtype=float)
         sea_cart = np.matmul(sea[:,:-1], self.reciprocal)
         sea[:,-1] = np.linalg.norm(sea_cart, axis=1)
-        return sort_rows(sea, -1)
+        #custom insertion sort using is_greater_than
+        i = 1
+        while i < len(sea):
+            x = np.copy(sea[i])
+            j = i - 1
+            while (j >= 0) and is_greater_than(sea[j,-1], x[-1]):
+                sea[j+1] = np.copy(sea[j])
+                j -= 1
+            sea[j+1] = np.copy(x)
+            i += 1
+        #return sort_rows(sea, -1)
+        return sea
 
     def closed_shell(self, sea, k_fermi):
         """
