@@ -67,3 +67,13 @@ def laplacian_pade(r, a, b, c):
     numerator *= 2
     denominator = r*(1 + b*r)**3
     return numerator/denominator
+
+def pade_params(r, a, b, c):
+    """
+    derivative of pade wrt a, b, c
+    """
+    denominator = 1 + b*r #used for all three derivs
+    d_da = r / denominator
+    d_db = -(a + c*r)*r**2 / denominator**2
+    d_dc = r**2 / denominator
+    return d_da, d_db, d_dc

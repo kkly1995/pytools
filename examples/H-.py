@@ -3,7 +3,7 @@ import numpy as np
 import math
 from random import random
 from pytools.qmc import log_transition_ratio
-from pytools.jastrow import pade, pade_prime, laplacian_pade
+from pytools.jastrow import pade, pade_prime, laplacian_pade, pade_params
 
 class wavefunction:
     def __init__(self, Z, a, b, c):
@@ -22,6 +22,18 @@ class wavefunction:
         r_ee = np.linalg.norm(self.r[1] - self.r[0])
         u = pade(r_ee, self.a, self.b, self.c)
         return -self.Z*r + u
+
+    def param_derivs_logpsi(self):
+        """
+        derivatives of logpsi w.r.t
+        Z, a, b, c
+        respectively
+        """
+        r = sum(np.linalg.norm(self.r, axis=1))
+        r_ee = np.linalg.norm(self.r[1] - self.r[0])
+        d_da, d_db, d_dc = pade_params(r_ee, self.a, self.b, self.c)
+        d_dZ = -r
+        return d_dZ, d_da, d_db, d_dc
 
     def g_logpsi(self):
         rhat = self.r / np.linalg.norm(self.r, axis=1)[:,np.newaxis]
@@ -106,11 +118,9 @@ class wavefunction:
         return accepted
 
 if __name__=="__main__":
-    np.random.seed(69)
-    Z = 0.858
-    a = 0.797
-    b = 1.538
-    c = 0.340
+    #np.random.seed(69)
+    Z = 0.8812
+    a = 0.048
+    b = 0.9886
+    c = 0.241
     wf = wavefunction(Z, a, b, c)
-    #for reading and writing
-    suffix = '_%.3f_%.3f_%.3f_%.3f' % (Z, a, b, c)
