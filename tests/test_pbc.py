@@ -145,15 +145,14 @@ def test_grad_ewald_lr():
     #compute derivatives
     f = pbc.ewald_lr(r, kappa, kvecs, volume) #h = 0
     h = 0.00001 #finite difference step
-    r[0] += h
-    ddx = (pbc.ewald_lr(r, kappa, kvecs, volume) - f)/h
-    r[0] -= h
-    r[1] += h
-    ddy = (pbc.ewald_lr(r, kappa, kvecs, volume) - f)/h
-    r[1] -= h
-    r[2] += h
-    ddz = (pbc.ewald_lr(r, kappa, kvecs, volume) - f)/h
-    grad = np.array([ddx, ddy, ddz])
+    grad = np.zeros(3)
+    for i in range(3):
+        r[i] += h
+        fwd = pbc.ewald_lr(r, kappa, kvecs, volume)
+        r[i] -= 2*h
+        bwd = pbc.ewald_lr(r, kappa, kvecs, volume)
+        r[i] += h
+        grad[i] = (fwd - bwd) / (2*h)
     assert np.isclose(grad, pbc.grad_ewald_lr(r, kappa, kvecs, volume),\
             rtol=1e-2).all()
 
@@ -199,5 +198,5 @@ def test_laplacian_ewald_lr():
         r[i] += h #restore original r
         lap += (f_fwd + f_bwd - 2*f) / h**2
     assert np.isclose(lap, pbc.laplacian_ewald_lr(r, kappa, kvecs, volume),\
-            rtol=1e-4)
+            rtol=1e-2)
 

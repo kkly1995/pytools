@@ -1,0 +1,2 @@
+#grep 'LocalEnergy ' dmc.dat > energy.dmc
+-26.947700 0.000087 

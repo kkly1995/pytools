@@ -1,0 +1,2 @@
+#grep ! scf.out > energy.scf
+-53.30029042

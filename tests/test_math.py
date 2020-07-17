@@ -164,3 +164,23 @@ def test_coulomb_potential():
             'coulomb_potential failed for down electrons'
     assert isclose(updown_potential, updown_manual), \
             'coulomb_potential failed for up-down electrons'
+
+def test_is_greater_than():
+    """
+    the whole reason is_greater_than() exists in the first place
+    is that, in pbc.cell.kvecs(), the sorting results were machine
+    dependent, presumably because the behavior of (a>b) when a and b
+    are supposed to be equal is unpredictable (?). hence this test
+    directly targets pbc.cell.kvecs() by comparing its output to
+    one generated on a particular machine. at the time of writing,
+    the machine is my 2020 macbook air
+    """
+    #generate list of k
+    from pytools.pbc import cell
+    v = np.sqrt(2)*np.eye(3)
+    supercell = cell(v[0], v[1], v[2])
+    klist1 = supercell.kvecs(3)[:,:3]
+    with open('data/klist.dat', 'r') as f:
+        klist2 = np.loadtxt(f)
+    msg = 'pbc.cell.kvecs() did not match test data'
+    assert np.allclose(klist1, klist2), msg
