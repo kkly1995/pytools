@@ -102,7 +102,7 @@ def ashcroft_empty_core(charge, cutoff, screening_length,\
     #set diagonal to nonsense to avoid division by 0
     kappa[np.diag_indices(len(k))] = np.array([1,0,0])
     kappa_norm = np.linalg.norm(kappa, axis=-1)
-    denominator = (screening_length**2) + (kappa_norm**3)
+    denominator = (screening_length**2) * (kappa_norm**3)
     denominator += kappa_norm
     numerator = kappa_norm*screening_length*np.cos(kappa_norm*cutoff)
     numerator += np.sin(kappa_norm*cutoff)
