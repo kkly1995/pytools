@@ -27,7 +27,7 @@ def correlation_time(data, cutoff, show=False):
     cutoff must always be specified, since ideally dataset is large
     """
     correlations = autocorrelation(data)[:cutoff]
-    correlationtime = 1 + 2*sum(correlations)
+    correlationtime = 1 + 2*sum(correlations[1:])
     if show:
         plt.plot(correlations, 'r-')
         plt.title('correlation time = ' + str(correlationtime))
