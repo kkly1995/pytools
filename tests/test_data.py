@@ -21,3 +21,12 @@ def test_bootstrap_mean_error():
     expected_err = np.full((6, 9), expected_err)
     bootstrap_err = pd.bootstrap_mean_error(data, 2000)
     assert np.allclose(expected_err, bootstrap_err, rtol=0.1)
+
+def test_pair_correlation():
+    # test on ideal gas distances
+    with open('data/ideal_pair_distances.dat', 'r') as f:
+        data = np.loadtxt(f)
+    L = 6.9
+    gr, r = pd.pair_correlation(data, L**3, range=(1, L/2))
+    # range is limited because of noise
+    assert np.isclose(np.mean(gr), 1, rtol=0.001)

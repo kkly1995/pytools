@@ -67,22 +67,41 @@ def plot_estimator(data, start=0, ylims='var'):
         pass
     plt.show()
     
-def makegofr(hist):
+def pair_correlation(dists, volume, bins='auto', range=None):
     """
-    hist is a tuple returned by numpy.histogram
-    where hist[0] gives the number in each bin
-    and hist[1] gives the locations of the bin edges
-    this converts the histogram to a normalized g(r) assuming
-    a 3D system, no weights, same bin sizes, etc
+    pair correlation function given pair distances dist
+    assuming a 3D, isotropic system with specified volume
+    dist is assumed to be a 1D array
+
+    bins and range are the same args as in np.histogram()
     """
-    y = hist[0].astype(float) #hist values are output as int
-    x = np.copy(hist[1][:-1]) #dump the last value
-    dx = x[1] - x[0]
-    x += dx/2 #shift so that x now gives the middle of each bin
-    #normalize
-    y /= trapz(y, x)
-    y /= 4*np.pi*x**2
-    return x, y
+    hist = np.histogram(dists, bins='auto', range=range)
+    dr = hist[1][1] - hist[1][0]
+    r = (hist[1] + dr/2)[:-1] #centers of bins
+    shell_volume = (r + dr/2)**3 - (r - dr/2)**3
+    shell_volume *= 4*np.pi/3
+    gr = hist[0] / shell_volume
+    normalization = volume / len(dists)
+    return normalization*gr, r
+
+def structure_factor(k, r):
+    """
+    3D structure factor
+    WARNING: can be very memory intensive
+
+    k: array of k vectors, shape (#vectors, 3)
+    r: array of coordinates, shape (#samples, #particles, 3)
+    returns: array of shape (#vectors,)
+        element i corresponds to structure factor
+        evaluated at k[i]
+    """
+    kdotr = np.einsum('ij,slj->sil', k, r)
+    addend = np.exp(-1j*kdotr)
+    addend_minus = np.exp(1j*kdotr)
+    rho_k = np.sum(addend, axis=-1)
+    rho_minus_k = np.sum(addend_minus, axis=-1)
+    N = r.shape[1] # number of particles
+    return np.mean(rho_k*rho_minus_k, axis=0) / N
 
 def sort_rows(arr, column):
     """

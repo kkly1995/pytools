@@ -7,14 +7,11 @@ import scipy.special as sp
 from pytools.data import sort_rows
 from pytools.math import is_greater_than
 
-def minimum_image(r):
+def minimum_image(r, L=1.0):
     """
     returns the minimum image of r
-    ideally: r is in crystal coordinates,
-    and this reduces every component to a number between
-    -0.5 and 0.5
     """
-    return r - np.round(r)
+    return r - L*np.round(r/L)
 
 def ewald_sr(kappa, r):
     """
