@@ -103,6 +103,24 @@ def structure_factor(k, r):
     N = r.shape[1] # number of particles
     return np.mean(rho_k*rho_minus_k, axis=0) / N
 
+def structure_factor_sample(k, r):
+    """
+    3D structure factor for a single sample
+    so it's less memory intensive
+
+    k: array of k vectors, shape (#vectors, 3)
+    r: array of coordinates, shape (#particles, 3)
+    returns: array of shape (#vectors,)
+        element i corresponds to structure factor
+        evaluated at k[i]
+    """
+    kdotr = np.einsum('ij,nj->in', k, r)
+    addend = np.exp(-1j*kdotr)
+    addend_minus = np.exp(1j*kdotr)
+    rho_k = np.sum(addend, axis=-1)
+    rho_minus_k = np.sum(addend_minus, axis=-1)
+    return rho_k * rho_minus_k / len(r)
+
 def sort_rows(arr, column):
     """
     sorts the rows of an array according to column
