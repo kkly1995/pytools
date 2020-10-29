@@ -72,7 +72,7 @@ def read_force(fname):
             forces.append([float(words[-3]),float(words[-2]),float(words[-1])])
     return np.array(forces)
 
-def read_atomic_positions(fname, n_atoms):
+def read_input_positions(fname, n_atoms):
     """
     read the atomic positions of an input file whose name is fname
     it assumed that the positions begin after the line beginning with
@@ -97,6 +97,33 @@ def read_atomic_positions(fname, n_atoms):
             atomic_positions[count,2] = float(words[-1])
             count += 1
         if 'ATOMIC_POSITIONS' in line.split():
+            found = True
+        if count == n_atoms:
+            return atomic_positions
+    if count != n_atoms:
+        print('too many atoms were specified')
+    if found == False:
+        print('atomic positions were not found')
+
+def read_output_positions(fname, n_atoms):
+    """
+    very similar to read_input_positions but works on an output file
+    and assumes it will find the positions below the line containing
+    the words 'site' and 'positions'
+    """
+    with open(fname, "r") as f:
+        lines = f.readlines()
+    found = False
+    count = 0
+    atomic_positions = np.zeros((n_atoms, 3))
+    for line in lines:
+        words = line.split()
+        if found:
+            atomic_positions[count,0] = float(words[-4])
+            atomic_positions[count,1] = float(words[-3])
+            atomic_positions[count,2] = float(words[-2])
+            count += 1
+        if ('site' in words) and ('positions' in words):
             found = True
         if count == n_atoms:
             return atomic_positions

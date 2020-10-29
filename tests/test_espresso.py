@@ -8,11 +8,11 @@ def test_read_force():
     msg = 'read_force() failed on test set'
     assert np.allclose(force1, force2), msg
 
-def test_read_atomic_positions():
+def test_read_input_positions():
     with open('data/atomic_pos.scf', 'r') as f:
         pos1 = np.loadtxt(f)
-    pos2 = pe.read_atomic_positions('data/scf.in', len(pos1))
-    msg = 'read_atomic_positions() failed on test set'
+    pos2 = pe.read_input_positions('data/scf.in', len(pos1))
+    msg = 'read_input_positions() failed on test set'
     assert np.allclose(pos1, pos2)
 
 def test_read_energy():
