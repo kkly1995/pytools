@@ -2,11 +2,10 @@
 collection of data analysis tools
 typically geared towards statistical / monte carlo type data
 """
-
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-from scipy.integrate import trapz
+import h5py
 from sklearn.utils import resample
 
 def autocorrelation(data):
@@ -170,3 +169,71 @@ def bootstrap_mean_error(data, num_bootstraps):
     for i in range(num_bootstraps):
         means.append(np.mean(resample(data), axis=0))
     return np.std(means, axis=0)
+
+def cube_to_hdf5(cubename, hdfname):
+    """
+    converts Gaussian cube file to hdf5
+    format of the cube file can be found on
+    http://paulbourke.net/dataformats/cube/
+
+    args:
+        cubename (str): name of cube file to convert
+        hdfname (str): name of hdf5 file to write to
+    returns:
+        nothing
+    """
+    with open(cubename, 'r') as f:
+        lines = f.readlines()
+
+    # third line has number of atoms, as well as the origin
+    line = lines[2].split()
+    number_of_atoms = int(line[0])
+    origin = [float(line[1]), float(line[2]), float(line[3])]
+
+    # next three lines give number of voxels along each axis
+    # and corresponding axis vectors
+    line = lines[3].split()
+    N1 = int(line[0])
+    v1 = [float(line[1]), float(line[2]), float(line[3])]
+    line = lines[4].split()
+    N2 = int(line[0])
+    v2 = [float(line[1]), float(line[2]), float(line[3])]
+    line = lines[5].split()
+    N3 = int(line[0])
+    v3 = [float(line[1]), float(line[2]), float(line[3])]
+
+    # next section gives types, charges and positions
+    positions = np.zeros((number_of_atoms, 3))
+    types = np.zeros(number_of_atoms, dtype=int)
+    charges = np.zeros(number_of_atoms)
+    for i in range(number_of_atoms):
+        line = lines[6+i].split()
+        types[i] = int(line[0])
+        charges[i] = float(line[1])
+        positions[i,0] = float(line[2])
+        positions[i,1] = float(line[3])
+        positions[i,2] = float(line[4])
+
+    # begin reading the grid, assuming 6 numbers per line
+    grid = []
+    line_number = 6 + number_of_atoms # starts here
+    for line in lines[line_number:]:
+        for word in line.split():
+            grid.append(float(word))
+    grid = np.array(grid)
+    grid = grid.reshape((N1, N2, N3))
+
+    # write
+    with h5py.File(hdfname, 'w') as f:
+        f["/number_of_atoms"] = number_of_atoms
+        f["/origin"] = origin
+        f["/grid/N1"] = N1
+        f["/grid/N2"] = N2
+        f["/grid/N3"] = N3
+        f["/grid/v1"] = v1
+        f["/grid/v2"] = v2
+        f["/grid/v3"] = v3
+        f["/grid/values"] = grid
+        f["/system/types"] = types
+        f["/system/charges"] = charges
+        f["/system/positions"] = positions
