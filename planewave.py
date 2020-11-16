@@ -1,4 +1,5 @@
 import numpy as np
+from numba import jit
 """
 collection of functions utilizing plane wave bases
 e.g. list of vectors from pbc.cell.kvecs()
@@ -93,8 +94,7 @@ def ashcroft_empty_core(charge, cutoff, screening_length,\
     supercell provides the geometry,
     and ion_coords gives the position of ions in reduced coordinates
     """
-    exponent = 2j*np.pi*np.einsum('ijx,ax->ija', k, ion_coords)
-    lattice_sum = np.sum(np.exp(exponent), axis=-1)
+    latsum = lattice_sum(k, ion_coords)
     diagonal = screening_length*(cutoff + screening_length)*\
             np.exp(-cutoff / screening_length)
     #begin offdiagonal
@@ -110,6 +110,72 @@ def ashcroft_empty_core(charge, cutoff, screening_length,\
     #assemble
     potential = numerator/denominator
     potential[np.diag_indices(len(k))] = diagonal
-    potential = potential.astype(complex)*lattice_sum / supercell.volume
+    potential = potential.astype(complex)*latsum / supercell.volume
     potential *= 4*np.pi*charge
     return potential
+
+@jit(nopython=True)
+def lattice_sum(k, r):
+    """
+    perform the lattice sum
+    \sum_{r_i} e^{i k_n \cdot r_i}
+    for every k_n in input k
+
+    args:
+        k (array): "table" of integer triplets,
+            which has three axes, and k[i,j] stores each triplet
+            i.e. k.shape[2] == 3 must be true
+        r (array): array of coordinates to do the lattice sum over
+            has two axes: r[i] gives the coordinates of particle i
+            i.e. r.shape[1] == 3 must be true
+            should be in fractional coordinates if k is integer triplets
+    returns:
+        array of the same shape as k without the last axis
+            i.e. element (i,j) is the lattice sum for k[i,j]
+    """
+    N = k.shape[0]
+    M = k.shape[1]
+    L = r.shape[0]
+    val = np.zeros((N, M), dtype=np.complex64)
+    for i in range(N):
+        for j in range(M):
+            for a in range(L):
+                kdotr = k[i,j,0]*r[a,0] + k[i,j,1]*r[a,1] + k[i,j,2]*r[a,2]
+                val[i,j] += np.exp(2j*np.pi*kdotr)
+    return val
+
+def gaussian_potential(params, k, supercell, coords):
+    """
+    one-body effective potential V(k)
+    which is just a gaussian centered at 0
+    with 4 parameters: (in order)
+        the value for V(0)
+        overall factor multiplying the whole gaussian
+        the center of the gaussian
+        width of the gaussian
+    
+    args:
+        params (array-like): a 1D array or list with 4 numbers,
+            containing the parameters of the potential
+        k (array): table of integer triplets to use for k-vectors
+            has 3 axes, the last of which has length 3
+            see lattice_sum() for more info
+        supercell (pbc.cell type): required to convert coordinates
+            and also has the volume of the system
+        coords (array): coordinates of the atoms in the cell
+            has 2 axes, the second of which has length 3
+            ideally should be fractional coordinates,
+            since k is assumed to be in integer coordinates
+    returns:
+        array of the same shape as k but without the last axis
+            the (i,j)th element is V(k[i,j])
+    """
+    lattice_factor = lattice_sum(k, coords) / supercell.volume
+    kappa = np.einsum('ijl,lx->ijx', k, supercell.reciprocal)
+    #set diagonal to nonsense to avoid division by 0
+    kappa[np.diag_indices(len(k))] = np.array([1,0,0])
+    kappa = np.linalg.norm(kappa, axis=-1)
+    v = np.zeros_like(kappa, dtype=complex)
+    v += params[1]*np.exp(-(kappa - params[2])**2 / (2*params[3]**2))
+    v[np.diag_indices(len(k))] = params[0]
+    return lattice_factor*v
