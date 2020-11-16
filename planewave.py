@@ -32,8 +32,8 @@ def bare_nuclear_potential(k, supercell, ion_coords):
     #set diagonal to inf to avoid division by zero
     denominator[np.diag_indices(len(k))] = np.inf
     exponent = 2j*np.pi*np.einsum('ijx,ax->ija', k, ion_coords)
-    lattice_sum = np.sum(np.exp(exponent), axis=-1)
-    return 4*np.pi*density*lattice_sum / denominator
+    lattice_factor = np.sum(np.exp(exponent), axis=-1)
+    return 4*np.pi*density*lattice_factor / denominator
 
 def kinetic(basis, supercell):
     """
