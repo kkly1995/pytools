@@ -148,14 +148,12 @@ def gaussian_potential(params, k, supercell, coords):
     """
     one-body effective potential V(k)
     which is just a gaussian centered at 0
-    with 4 parameters: (in order)
-        the value for V(0)
+    with 2 parameters: (in order)
         overall factor multiplying the whole gaussian
-        the center of the gaussian
         width of the gaussian
     
     args:
-        params (array-like): a 1D array or list with 4 numbers,
+        params (array-like): a 1D array or list with 2 numbers,
             containing the parameters of the potential
         k (array): table of integer triplets to use for k-vectors
             has 3 axes, the last of which has length 3
@@ -176,6 +174,6 @@ def gaussian_potential(params, k, supercell, coords):
     kappa[np.diag_indices(len(k))] = np.array([1,0,0])
     kappa = np.linalg.norm(kappa, axis=-1)
     v = np.zeros_like(kappa, dtype=complex)
-    v += params[1]*np.exp(-(kappa - params[2])**2 / (2*params[3]**2))
-    v[np.diag_indices(len(k))] = params[0]
+    v += params[0]*np.exp(-kappa**2 / (2*params[1]**2))
+    v[np.diag_indices(len(k))] = 0 # diagonal is irrelevant
     return lattice_factor*v
