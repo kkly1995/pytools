@@ -149,3 +149,30 @@ def read_energy(fname):
             pass
     #if it makes it out of the loop, energy hasnt been found
     print('energy not found')
+
+def read_multiple_positions(fname):
+    """
+    read positions from an output with multiple configurations
+    e.g. a relax or md run
+    assumes that every line with 4 words,
+    the last 3 of which are numbers, is a position
+
+    args:
+        fname (str): name of output file to read
+    returns:
+        array of shape (N, 3), where N should be
+        number of configurations times number of atoms
+    """
+    with open(fname, 'r') as f:
+        lines = f.readlines()
+    positions = []
+    for line in lines:
+        words = line.split()
+        if len(words) == 4:
+            try:
+                positions.append(\
+                        [float(words[-3]), float(words[-2]), float(words[-1])]\
+                        )
+            except:
+                pass
+    return np.array(positions)
