@@ -1,26 +1,23 @@
 # tools related to lammps
 import numpy as np
 
-def read_configs(fname, number_of_samples):
+def read_dump(fname, number_of_samples):
     """
-    read configurations dumped by lammps
-    written in atom style
+    read dump from lammps
 
     args:
-        fname (string): name of file that lammps dumped configs into
-        number_of_samples: number of samples to read from the file;
+        fname (string): name of dump file
+        number_of_samples (int): number of samples to read from the file;
             can be equal to or less than the number of actual samples
             in the file
     returns:
-        array, array; first array is of shape (number_of_samples, 3, 3)
-            and gives the box bounds for each sample;
-            second array is of shape (number_of_samples, N, 3)
-            where N is the number of atoms,
-            which can be inferred from the output,
-            and gives the reduced coordinates of each sample
+        tuple of arrays, the first having shape (number_of_samples, N, M)
+        where N is the number of atoms
+        and M is the number of columns of the dump
+        and the second having shape (2, 3) giving the box bounds
     """
     box = []
-    coordinates = []
+    data = []
     with open(fname, 'r') as f:
         for i in range(number_of_samples):
             for j in range(3):
@@ -29,8 +26,8 @@ def read_configs(fname, number_of_samples):
             N = int(f.readline()) # number of atoms
             # this is read for each sample, since it can potentially vary (?)
             box.append(np.loadtxt(f, skiprows=1, max_rows=3))
-            coordinates.append(np.loadtxt(f, skiprows=1, max_rows=N))
-    return np.array(box), np.array(coordinates)
+            data.append(np.loadtxt(f, skiprows=1, max_rows=N))
+    return np.array(data), np.array(box)
 
 def read_rdf(fname, number_of_bins, number_of_samples):
     """
