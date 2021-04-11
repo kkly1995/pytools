@@ -237,3 +237,29 @@ def cube_to_hdf5(cubename, hdfname):
         f["/system/types"] = types
         f["/system/charges"] = charges
         f["/system/positions"] = positions
+
+def isotropic_average(x, y, decimals=8):
+    """
+    args:
+        x (array): has shape (N, D), where N is the number of inputs
+        and D is the dimension of the inputs
+        y (array): has shape (N,), value of function at corresponding x
+        decimals (int): when x is float, some machines will separate
+        two magnitudes that appear to be the same. this can be handled by
+        rounding all the inputs, and this specifies the number of decimal
+        places for rounding
+    returns:
+        array of shape (n, 2), where n is the number of unique magnitudes
+        of x, the first column are the magnitudes, and the second column
+        are the averages of y over the magnitudes
+    """
+    v, indices = np.unique(np.linalg.norm(x, axis=1).round(decimals=decimals),\
+            return_inverse=True)
+    f = []
+    for i in range(len(v)):
+        f.append(np.mean(y[indices==i]))
+    # put into one array
+    a = np.zeros((len(v), 2))
+    a[:,0] = v
+    a[:,1] = f
+    return a
