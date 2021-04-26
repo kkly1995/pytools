@@ -184,3 +184,20 @@ def test_is_greater_than():
         klist2 = np.loadtxt(f)
     msg = 'pbc.cell.kvecs() did not match test data'
     assert np.allclose(klist1, klist2), msg
+
+def test_integer_triplets():
+    """
+    test for triplets between -3 and +5
+    """
+    val = pm.integer_triplets(-3, 5)
+    manual = []
+    for i in range(-3, 5):
+        for j in range(-3, 5):
+            for k in range(-3, 5):
+                manual.append([i,j,k])
+    manual = np.array(manual)
+    difference = np.setdiff1d(val, manual)
+    # not using allclose here since they do not have to have same ordering
+    msg = 'nonzero difference between integer_triplets() \
+            and triplets generated manually'
+    assert (difference.size==0), msg

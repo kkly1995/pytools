@@ -228,3 +228,22 @@ def is_greater_than(a, b):
         return False
     else:
         return a > b
+
+def integer_triplets(lower_bound, upper_bound):
+    """
+    generate all integer triplets [x,y,z] such that
+    lower_bound <= x,y,z < upper_bound (note the inequality)
+    using numpy's 'trick' mgrid
+
+    useful for e.g. making k-vectors
+
+    args:
+        lower_bound (int): smallest number to include in triplets,
+            can be negative
+        upper_bound (int): largest number to include in triplets
+    returns:
+        array of shape (N^3, 3), where N = upper_bound - lower_bound
+    """
+    N = upper_bound - lower_bound
+    return np.mgrid[lower_bound:upper_bound, lower_bound:upper_bound,\
+            lower_bound:upper_bound].reshape(3, N**3).T
