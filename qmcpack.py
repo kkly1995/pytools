@@ -73,6 +73,8 @@ def fix_href(fname, hname):
     returns:
         None, will print complaint if href is not found
     """
+    with open(fname, 'r') as f:
+        lines = f.readlines()
     found = False
     linenum = -1
     for i in range(len(lines)):
