@@ -82,7 +82,7 @@ def fix_href(fname, hname):
             found = True
             break
     if found:
-        lines[i] = lines[i].replace('MISSING.h5', path)
+        lines[i] = lines[i].replace('MISSING.h5', hname)
         with open(fname, 'w') as f:
             f.writelines(lines)
     else:
