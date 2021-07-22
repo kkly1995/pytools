@@ -57,3 +57,31 @@ def read_force(fname, name='force'):
         force[indices[i]] = force_list[i]
         error[indices[i]] = error_list[i]
     return force, error
+
+def fix_href(fname, hname):
+    """
+    when using nexus to generate QMC input
+    using generate_only = 1,
+    href in sposet_builder is missing (for good reason)
+
+    this manually replaces the missing href, assumed to be named
+    MISSING.h5
+
+    args:
+        fname (string): path/name of QMCPACK input containing incorrect href
+        hname (string): path/name of actual href to use
+    returns:
+        None, will print complaint if href is not found
+    """
+    found = False
+    linenum = -1
+    for i in range(len(lines)):
+        if lines[i].find('href') != -1:
+            found = True
+            break
+    if found:
+        lines[i] = lines[i].replace('MISSING.h5', path)
+        with open(fname, 'w') as f:
+            f.writelines(lines)
+    else:
+        print('could not find missing href in %s' % fname)

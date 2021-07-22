@@ -263,3 +263,26 @@ def isotropic_average(x, y, decimals=8):
     a[:,0] = v
     a[:,1] = f
     return a
+
+def velocity_autocorrelation(v):
+    """
+    args:
+        v (array): has shape (samples, particles, 3)
+        i.e. v[3,2,1] is the y-component of the velocity
+        of particle 2, in sample 3
+
+    returns:
+        list  of length T = len(v), the velocity autocorrelation
+        as a function of t, the time between samples
+    """
+    total_time = v.shape[0]
+    N = v.shape[1]
+    vv = np.einsum('tij,yij->ty', v, v) / N
+    # average over times vv(t, t') = vv(t - t')
+    avg = []
+    for dt in range(total_time):
+        avg.append(0)
+        for t in range(total_time - dt):
+            avg[dt] += vv[t, t+dt]
+        avg[dt] /= total_time - dt
+    return avg

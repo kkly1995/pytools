@@ -545,3 +545,29 @@ class cell:
             if not included:
                 half_shell.append(k)
         return np.array(half_shell)
+
+def unwrap_trajectory(r, L):
+    """
+    'reverses' the minimum image convention on a trajectory r;
+    that is, r is a trajectory in which particles are wrapped
+    back into the box if they venture outside;
+    this attempts to undo that, assuming that the particles cannot
+    travel the length of the box from one sample to the next;
+
+    only works for cubic boxes
+
+    args:
+        r (array): shape (number of samples, number of particles, D)
+        where D is the dimension
+        L (float): side length of cubic box
+    returns:
+        array of shape like r,
+        the unwrapped version of r
+    """
+    displacement = r - np.roll(r, 1, axis=0)
+    unwrapped = np.zeros_like(r)
+    unwrapped[0] = np.copy(r[0])
+    displacement_min = minimum_image(displacement, L)
+    for i in range(1, len(r)):
+        unwrapped[i] = unwrapped[i-1] + displacement_min[i]
+    return unwrapped
