@@ -259,3 +259,139 @@ def write_runner(
         lines.append('end\n')
     with open(fname, 'w') as f:
         f.writelines(lines)
+
+def write_nep(
+        fname: str,
+        images: Union[Atoms, Sequence[Atoms]],
+        type_map: list,
+        ) -> None:
+    """
+    fname: str
+        Name of file to write samples to. While any name is allowed,
+        NEP (as of Oct 11, 2021) favors train.in and test.in.
+    images: Atoms object, or list of Atoms objects
+        The Atoms need not be identical in composition, number of atoms, etc.
+        However, each object must have energy and forces.
+        Not all Atoms need to have stress either (untested).
+    type_map: list
+        Like deepmd, NEP enumerates atoms starting from 0.
+        This specifies which atoms are mapped to which number.
+        Specifically, an atom with atomic number type_map[0] is mapped
+        to 0, etc. The atomic numbers are parsed from
+        get_atomic_numbers().
+    """
+    # file consists of two parts, header and body
+    header = []
+    body = []
+    
+    header.append('%s\n' % len(images))
+
+    for image in images:
+        types = image.get_atomic_numbers()
+        cell = image.get_cell()[:]
+        position = image.get_positions(wrap=True)
+        energy = image.get_potential_energy()
+        force = image.get_forces()
+        # remap types
+        new_types = np.full_like(types, -1)
+        for i in range(len(type_map)):
+            new_types[types == type_map[i]] = i
+        if (new_types == -1).any():
+            print('provided type map did not map all species')
+            return
+        # figure out if there's virial info
+        virial = np.zeros(6)
+        has_virial = False
+        try:
+            virial = -image.get_stress()*image.get_volume()
+            has_virial = True
+        except:
+            # keep has_virial false
+            continue
+        # start writing
+        header.append('%d %d\n' % (len(image), has_virial))
+        # energy and virial line
+        if has_virial:
+            body.append('%.8f %.8f %.8f %.8f %.8f %.8f %.8f\n' % (
+                energy,
+                virial[0],
+                virial[1],
+                virial[2],
+                virial[5], # off diagonals do not follow ASE's order
+                virial[3],
+                virial[4]
+                ))
+        else:
+            body.append('%.8f\n' % energy)
+        # cell line
+        body.append('%.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f\n' % (
+            cell[0,0], cell[0,1], cell[0,2],
+            cell[1,0], cell[1,1], cell[1,2],
+            cell[2,0], cell[2,1], cell[2,2]
+            ))
+        # atom lines
+        line = '%d %.8f %.8f %.8f %.8f %.8f %.8f\n'
+        for i in range(len(image)):
+            body.append(line % (
+                new_types[i],
+                position[i,0], position[i,1], position[i,2],
+                force[i,0], force[i,1], force[i,2]
+                ))
+    with open(fname, 'w') as f:
+        f.writelines(header + body)
+
+def read_nep(
+        fname: str,
+        type_map: list
+        ) -> Union[Atoms, List[Atoms]]:
+    """
+    fname: str
+        Name of file containing NEP data.
+    type_map: list
+        See type_map arg in write_nep. This routine will invert the mapping,
+        i.e. 0 is mapped to type_map[0].
+    """
+    f = open(fname, 'r')
+    # first line contains the number of samples
+    N_samples = int(f.readline())
+    # the next N_samples lines contains number of atoms per sample
+    N = []
+    for i in range(N_samples):
+        line = f.readline()
+        N.append(int(line.split()[0])) # ignore virial for now
+    # begin reading the samples
+    images = []
+    for i in range(N_samples):
+        # first line has the energy
+        line = f.readline()
+        energy = float(line.split()[0])
+        # next line has the cell vectors
+        cell = np.loadtxt(f, max_rows=1).reshape(3, 3)
+        # next N[i] lines has type, positions, forces
+        data = np.loadtxt(f, max_rows=N[i])
+        types = data[:,0]
+        positions = data[:,1:4]
+        forces = data[:,4:]
+        # remap types
+        new_types =  np.full_like(types, -1)
+        for j in range(len(type_map)):
+            new_types[types==j] = type_map[j]
+        if (new_types == -1).any():
+            print('provided type map did not map all species')
+            return
+        # assemble Atoms image
+        image = Atoms(
+                numbers=new_types,
+                positions=positions,
+                cell=cell,
+                pbc=True,
+                )
+        calc = SinglePointDFTCalculator(
+                image,
+                energy=energy,
+                forces=forces,
+                )
+        image.calc = calc
+        images.append(image)
+    f.close()
+    return images
