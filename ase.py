@@ -307,7 +307,7 @@ def write_nep(
             has_virial = True
         except:
             # keep has_virial false
-            continue
+            pass
         # start writing
         header.append('%d %d\n' % (len(image), has_virial))
         # energy and virial line
