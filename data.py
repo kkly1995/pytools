@@ -120,6 +120,25 @@ def structure_factor_sample(k, r):
     rho_minus_k = np.sum(addend_minus, axis=-1)
     return rho_k * rho_minus_k / len(r)
 
+def structure_factor_binary(k, r1, r2):
+    """
+    similar to structure_factor_sample() but assumes two species
+
+    k: array of k vectors, shape (#vectors, 3)
+    r1: array of coordinates for species 1, shape (#particles of type 1, 3)
+    r2: array of coordinates for species 2, shape (#particles of type 2, 3)
+    returns: array of shape (#vectors,)
+        element i corresponds to the structure factor
+        evaluated at k[i]
+    """
+    kdotr1 = np.einsum('ij,nj->in', k, r1)
+    kdotr2 = np.einsum('ij,nj->in', k, r2)
+    addend1 = np.exp(-1j*kdotr1)
+    addend2 = np.exp(1j*kdotr2)
+    rho_k = np.sum(addend1, axis=-1)
+    rho_minus_k = np.sum(addend2, axis=-1)
+    return rho_k *rho_minus_k / np.sqrt(len(r1)*len(r2)) # normalization?
+
 def sort_rows(arr, column):
     """
     sorts the rows of an array according to column
