@@ -137,7 +137,7 @@ def structure_factor_binary(k, r1, r2):
     addend2 = np.exp(1j*kdotr2)
     rho_k = np.sum(addend1, axis=-1)
     rho_minus_k = np.sum(addend2, axis=-1)
-    return rho_k *rho_minus_k / np.sqrt(len(r1)*len(r2)) # normalization?
+    return rho_k *rho_minus_k / (len(r1)*len(r2)) # so that max is 1?
 
 def sort_rows(arr, column):
     """
