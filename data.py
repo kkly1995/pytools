@@ -305,3 +305,30 @@ def velocity_autocorrelation(v):
             avg[dt] += vv[t, t+dt]
         avg[dt] /= total_time - dt
     return avg
+
+def fitting_scatterplot(predicted, actual, color='g', plot_error=False):
+    """
+    convenience function
+    to produce a empty-circled scatterplot of predicted vs actual data
+    as well as the line y=x for reference
+
+    if plot_error is True, then plot (predicted - actual)
+    vs actual instead
+
+    args:
+        predicted (1D array): predicted values
+        actual (1D array): actual values
+        color (str): matplotlib color
+        plot_error (bool): whether or not to plot the error
+
+    returns:
+        nothing
+    """
+    if plot_error:
+        error = predicted - actual
+        plt.scatter(actual, error, facecolors='none', edgecolors=color)
+        plt.grid()
+    else:
+        plt.scatter(actual, predicted, facecolors='none', edgecolors=color)
+        x = np.linspace(np.min(actual), np.max(actual))
+        plt.plot(x, x)
