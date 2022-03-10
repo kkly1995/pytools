@@ -268,19 +268,22 @@ def isotropic_average(x, y, decimals=8):
         rounding all the inputs, and this specifies the number of decimal
         places for rounding
     returns:
-        array of shape (n, 2), where n is the number of unique magnitudes
+        array of shape (n, 3), where n is the number of unique magnitudes
         of x, the first column are the magnitudes, and the second column
-        are the averages of y over the magnitudes
+        are the averages of y over the magnitudes, and the third column
+        counts the number of vectors per magnitude
     """
-    v, indices = np.unique(np.linalg.norm(x, axis=1).round(decimals=decimals),\
-            return_inverse=True)
+    v, indices, counts = np.unique(\
+            np.linalg.norm(x, axis=1).round(decimals=decimals),\
+            return_inverse=True, return_counts=True)
     f = []
     for i in range(len(v)):
         f.append(np.mean(y[indices==i]))
     # put into one array
-    a = np.zeros((len(v), 2))
+    a = np.zeros((len(v), 3))
     a[:,0] = v
     a[:,1] = f
+    a[:,2] = counts
     return a
 
 def velocity_autocorrelation(v):
