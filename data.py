@@ -74,7 +74,7 @@ def pair_correlation(dists, volume, bins='auto', range=None):
 
     bins and range are the same args as in np.histogram()
     """
-    hist = np.histogram(dists, bins='auto', range=range)
+    hist = np.histogram(dists, bins=bins, range=range)
     dr = hist[1][1] - hist[1][0]
     r = (hist[1] + dr/2)[:-1] #centers of bins
     shell_volume = (r + dr/2)**3 - (r - dr/2)**3
