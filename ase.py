@@ -1,10 +1,86 @@
 # ase-based routines
 import numpy as np
+from ase.io import read
 from ase.atoms import Atoms
 from ase.units import Bohr, Hartree
 from ase.calculators.singlepoint import SinglePointDFTCalculator
-from typing import Union, Sequence, List
+from typing import Union, Sequence, List, Any
 from os import mkdir, listdir
+
+def read_ipi_xyz(
+        fname: str,
+        positions: str,
+        cell: str,
+        index: Any = None
+        ):
+    """
+    Read xyz configuration(s) used by i-PI.
+    At the moment I don't know why the comment line in i-PI differs from
+    ASE convention, perhaps there is an option I am missing.
+
+    This uses ASE's reader but goes through the file an extra time to correct
+    for the cell, which it cannot (?) parse.
+
+    fname: str
+        Name of file to read.
+    positions: 'A' or 'B'
+        Whether the positions are given in angstroms (A) or bohr (B)
+    cell: 'A' or 'B'
+        Whether the cell parameters, namely the lengths, are in angstroms
+        or bohr
+    index: either None or ':'
+        Same as index in ase.io.read(), i.e. will be passed in as index=index
+        However, this routine will only handle two cases:
+        either the file contains only one image,
+        in which case None should be passed here
+        or the file contains more than one,
+        in which case ':' should be passed here.
+
+        The reason for this is to make it easy to match cell parameters
+        upon rereading.
+    """
+    image = read(fname, format='extxyz', index=index)
+    if isinstance(image, list):
+        N = len(image)
+        # change to angstrom if given in bohr
+        if positions == 'B':
+            for i in range(N):
+                r = image[i].get_positions()*Bohr
+                image[i].set_positions(r)
+        # reread and get cell parameters
+        f = open(fname, 'r')
+        for i in range(N):
+            next(f) # skip first line, which is just len(image[i])
+            line = f.readline()
+            word = line.split()
+            cellpar = np.zeros(6)
+            for j in range(6):
+                cellpar[j] = float(word[j+2])
+            # sucks putting this conditional in the loop but whatever
+            if cell == 'B':
+                cellpar[:3] *= Bohr
+            image[i].set_cell(cellpar)
+            image[i].set_pbc(True)
+            # skip position lines
+            for _ in range(len(image[i])):
+                next(f)
+        f.close()
+    else:
+        if positions == 'B':
+            r = image.get_positions()*Bohr
+            image.set_positions(r)
+        with open(fname, 'r') as f:
+            next(f) # skips first line?
+            line = f.readline()
+        word = line.split()
+        cellpar = np.zeros(6)
+        for i in range(6):
+            cellpar[i] = float(word[i+2])
+        if cell == 'B':
+            cellpar[:3] *= Bohr
+        image.set_cell(cellpar)
+        image.set_pbc(True)
+    return image
 
 def write_deepmd(
         path: str,
