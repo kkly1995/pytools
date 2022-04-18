@@ -1,6 +1,6 @@
 # ase-based routines
 import numpy as np
-from ase.io import read
+from ase.io import read, write
 from ase.atoms import Atoms
 from ase.units import Bohr, Hartree
 from ase.calculators.singlepoint import SinglePointDFTCalculator
@@ -81,6 +81,27 @@ def read_ipi_xyz(
         image.set_cell(cellpar)
         image.set_pbc(True)
     return image
+
+def write_ipi_xyz(
+        fname: str,
+        image: Atoms,
+        fmt: str,
+        ):
+    """
+    uses ASE's writer but changes the comment line to one that i-PI likes
+    currently only for writing a single sample
+    """
+    write(fname, image, format='extxyz')
+    cellpar = image.cell.cellpar()
+    comment = '# CELL(abcABC): '
+    for i in range(6):
+        comment += fmt % cellpar[i] + ' '
+    comment += 'positions{angstrom} cell{angstrom}\n'
+    with open(fname, 'r') as f:
+        lines = f.readlines()
+    lines[1] = comment
+    with open(fname, 'w') as f:
+        f.writelines(lines)
 
 def write_deepmd(
         path: str,
