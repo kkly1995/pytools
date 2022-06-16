@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sys import argv
+from random import randrange
+
+data = np.loadtxt(argv[1])
+number_to_select = int(argv[2])
+output = argv[3] # since savetxt to stdout kinda annoying
+
+f = open(output, 'w')
+
+scaler = StandardScaler()
+scaler.fit(data)
+data_rescaled = scaler.transform(data)
+
+# calculate distances in loop, in case it's too large for memory
+N = data.shape[0]
+distance = np.zeros((N, N))
+for i in range(N):
+    distance[i] = np.linalg.norm(data_rescaled[i] - data_rescaled, axis=1)
+f.write('calculation of distances complete!\n')
+f.write('going to selected %d points\n')
+
+# pick first point on random
+selected = [randrange(N)]
+f.write('picked point %d to start\n' % selected[0])
+
+for _ in range(number_to_select - 1):
+    # find the farthest point from currently selected subset
+    maximum = 0
+    argmax = 0
+    for i in range(N):
+        distance_to_selected = np.min(distance[i][selected])
+        if distance_to_selected > maximum:
+            maximum = distance_to_selected
+            argmax = i
+    selected.append(argmax)
+
+f.write('selection complete!\n')
+
+# write out indices
+f.write('selected indices:\n')
+for index in selected:
+    f.write('%d\n' % index)
+
+# write out data
+f.write('selected data:\n')
+np.savetxt(f, data[selected])
+
+f.close()
