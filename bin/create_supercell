@@ -1,0 +1,41 @@
+#!/usr/bin/env python
+# found myself doing this a lot, decided to make a convenience script
+import numpy as np
+import argparse
+from ase.io import write
+from ase.build import bulk, make_supercell
+
+parser = argparse.ArgumentParser()
+
+# positional arguments
+parser.add_argument('element', type=str,
+        help='chemical symbol(s) of atoms in desired structure')
+parser.add_argument('crystalstructure', type=str,
+        help='same as the crystalstructure arg in ase.build.bulk')
+parser.add_argument('a', type=float,
+        help='lattice constant')
+# 3 numbers of tiling
+parser.add_argument('tx', type=int,
+        help='number of copies along x-dir')
+parser.add_argument('ty', type=int,
+        help='number of copies along y-dir')
+parser.add_argument('tz', type=int,
+        help='number of copies along z-dir')
+parser.add_argument('fname', type=str,
+        help='name of file to write to')
+
+# optional
+parser.add_argument('--cubic', type=bool, default=True,
+        help='same as cubic arg in ase.build.bulk')
+parser.add_argument('--format', type=str, default='extxyz',
+        help='format to write in, same as format arg in ase.io.write')
+
+args = parser.parse_args()
+primitive = bulk(args.element, crystalstructure = args.crystalstructure,
+        a = args.a, cubic = args.cubic)
+tiling = np.eye(3)
+tiling[0,0] = args.tx
+tiling[1,1] = args.ty
+tiling[2,2] = args.tz
+supercell = make_supercell(primitive, tiling)
+write(args.fname, supercell, format=args.format)

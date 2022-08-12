@@ -217,6 +217,7 @@ def read_deepmd(
         path: str,
         type_map: list,
         read_virial: bool = False,
+        return_subsets: bool = False,
         ) -> Union[Atoms, List[Atoms]]:
     """
     Assumes the data is written according to deepmd's conventions,
@@ -229,6 +230,11 @@ def read_deepmd(
         Converts types from type.raw into atomic numbers for ASE.
         Species i (as read from type.raw) will be given atomic number
         type_map[i].
+    read_virial: bool
+        Whether or not to read in virial information.
+        Only works if virial information exists.
+    return_split: bool
+        Whether or not to return the number of subsets found.
     """
     # read and map types
     types = np.loadtxt(path + '/type.raw')
@@ -286,7 +292,10 @@ def read_deepmd(
                         )
                 image.calc = calc
                 images.append(image)
-        return images
+        if return_subsets:
+            return images, subsets
+        else:
+            return images
     else:
         for s in range(subsets):
             cell = np.load(path + '/set.' + str(s).zfill(3) + '/box.npy')
@@ -311,7 +320,10 @@ def read_deepmd(
                         )
                 image.calc = calc
                 images.append(image)
-        return images
+        if return_subsets:
+            return images, subsets
+        else:
+            return images
 
 def write_runner(
         fname: str,

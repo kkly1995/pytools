@@ -5,7 +5,7 @@ from sys import argv
 
 fname = argv[1]
 
-sample = read(fname, format='extxyz')
+sample = read(fname, format='espresso-in')
 r = sample.get_scaled_positions(wrap=True)
 
 # plot
