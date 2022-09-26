@@ -1,0 +1,30 @@
+#!/usr/bin/env python
+import numpy as np
+import argparse
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('sigma', type=float,
+        help='length scale')
+parser.add_argument('epsilon', type=float,
+        help='energy scale')
+parser.add_argument('rmin', type=float)
+parser.add_argument('rmax', type=float)
+parser.add_argument('N', type=int,
+        help='number of points in table')
+
+args = parser.parse_args()
+
+r = np.linspace(args.rmin, args.rmax, args.N)
+
+v = (args.sigma / r)**6
+v = v**2 - v
+v *= 4*args.epsilon
+v -= v[-1] # zero at the end
+
+f = (args.sigma / r)**6
+f = 2*f**2 - f
+f *= 24*args.epsilon / r
+
+for i in range(args.N):
+    print('%d %12.8f %12.8f %12.8f' % (i+1, r[i], v[i], f[i]))
