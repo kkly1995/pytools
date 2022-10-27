@@ -20,7 +20,7 @@ distance = np.zeros((N, N))
 for i in range(N):
     distance[i] = np.linalg.norm(data_rescaled[i] - data_rescaled, axis=1)
 f.write('calculation of distances complete!\n')
-f.write('going to selected %d points\n')
+f.write('going to select %d points\n' % number_to_select)
 
 # pick first point on random
 selected = [randrange(N)]

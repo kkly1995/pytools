@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sys import argv
+
+num_datasets = len(argv) - 1
+data = np.loadtxt(argv[1]) # dimension is inferred from first input
+num_datapoints = [len(data)]
+# read the rest, if any
+for i in range(1, num_datasets):
+    new_data = np.loadtxt(argv[i+1])
+    data = np.vstack((data, new_data))
+    num_datapoints.append(len(new_data))
+
+# rescale
+scaler = StandardScaler()
+scaler.fit(data)
+data_rescaled = scaler.transform(data)
+
+# PCA
+pca = PCA(n_components=3)
+pca.fit(data_rescaled)
+data_pca = pca.transform(data_rescaled)
+explained_variance = sum(pca.explained_variance_ratio_[:3])
+print('explained variance = %s' % explained_variance)
+
+fig = plt.figure()
+ax = plt.axes(projection='3d')
+index1 = 0
+index2 = 0
+for i in range(num_datasets):
+    index2 += num_datapoints[i]
+    ax.scatter3D(data_pca[index1:index2,0], data_pca[index1:index2,1],\
+            data_pca[index1:index2,2], label=argv[i+1])
+    index1 += num_datapoints[i]
+plt.tight_layout()
+plt.legend(loc='best')
+plt.show()
